@@ -13,6 +13,12 @@
 </p>
 
 <p align="center">
+  <picture>
+    <img src="brand/rainbow.jpg" width="100%" alt="colorful rainbow">
+  </picture>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/ffmpeg--8.0.1+-orange" alt="ffmpeg 8.0.1+">
   <img src="https://img.shields.io/badge/photography-%F0%9F%93%B8-purple" alt="photography">
