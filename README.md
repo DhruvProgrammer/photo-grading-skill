@@ -1,4 +1,18 @@
 <p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/app-icon-dark.png">
+    <img src="brand/app-icon.png" width="128" alt="photo-grading-skill app icon">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/logo/photo-grading-skill-wordmark-white.svg">
+    <img src="brand/logo/photo-grading-skill-wordmark-black.svg" height="48" alt="photo-grading-skill">
+  </picture>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/ffmpeg--8.0.1+-orange" alt="ffmpeg 8.0.1+">
   <img src="https://img.shields.io/badge/photography-%F0%9F%93%B8-purple" alt="photography">
