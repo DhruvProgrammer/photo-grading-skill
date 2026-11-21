@@ -158,7 +158,7 @@ def build_wheel_lut(wheels: Dict[str, Dict[str, Any]], blending: int = DEFAULT_B
 
 
 def build_levels_lut(shadows: float = 0.0, highlights: float = 0.0, blacks: float = 0.0,
-                     whites: float = 0.0, shadows_range: float = 0.0, size: int = LUT_SIZE) -> str:
+                     whites: float = 0.0, size: int = LUT_SIZE) -> str:
     """Generate a LUT from the tonal adjustments of PHOTO_CORRECTION: directional lifts on
     the shadow/highlight bands (shadows, highlights, blacks, whites), each 0..100.
 
