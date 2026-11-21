@@ -35,8 +35,7 @@ WORK_DIR_NAME = ".photo-grading"
 GEOMETRY_TOLERANCE = 1          # px; photos do not change geometry: a 1px slack
 MAX_TOOL_TIMEOUT = 1200.0
 PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp")
-# signalstats keys we record, in order
-MEASUREMENT_KEYS = ("yavg", "uavg", "vavg", "ymin", "ymax")
+# (measurement keys we record are "yavg", "uavg", "vavg" — parsed from showinfo's `mean:[Y U V]`)
 
 
 def _sha256_file(path: Path) -> str:
@@ -268,11 +267,11 @@ class Executor:
                 result = self._apply(current, dst, op, project.options["timeout"])
                 self._write_stamp(dst, identity, result)
             results_by_op[op.op_id] = {"operation_id": op.op_id, "type": op.type, **result, "reused": hit is not None}
-            artifacts[op.op_id] = dst
+            artifacts[f"op:{op.op_id}"] = dst   # keyed by REF so an op literally named "source" can't clobber it
             current = dst
         outputs: List[Dict[str, Any]] = []
         for o in project.outputs:
-            ref = o.operation if o.operation == "source" else o.operation.split(":", 1)[1]
+            ref = o.operation                   # "source" | "op:<id>"
             artifact = artifacts[ref]
             dst = self.policy.check_output(o.path, [])
             if artifact != dst and artifact.is_file():
@@ -283,7 +282,7 @@ class Executor:
                 dst.parent.mkdir(parents=True, exist_ok=True)
             out_record: Dict[str, Any] = {"output_id": o.output_id, "path": str(dst), "status": "completed",
                                           "sha256": self.probe(dst)["sha256"]}
-            result = results_by_op.get(ref)
+            result = results_by_op.get(ref.split(":", 1)[1]) if ref != "source" else None
             if result is not None:
                 out_record["provenance"] = result
             outputs.append(out_record)

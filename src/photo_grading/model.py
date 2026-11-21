@@ -69,22 +69,6 @@ def _check_id(doc: Dict[str, Any], value: Any, pattern: Any, what: str, path: st
     return value
 
 
-def _check_int(doc: Dict[str, Any], params: Dict[str, Any], name: str, lo: int, hi: int, path: str) -> None:
-    v = params.get(name)
-    if v is None:
-        return
-    if not _is_int(v) or v < lo or v > hi:
-        raise PhotoError("INVALID_REQUEST", f"parameter {name} must be an integer in [{lo}, {hi}]", {"path": path, "got": v})
-
-
-def _check_num(doc: Dict[str, Any], params: Dict[str, Any], name: str, lo: float, hi: float, path: str) -> None:
-    v = params.get(name)
-    if v is None:
-        return
-    if not _is_num(v) or v < lo or v > hi:
-        raise PhotoError("INVALID_REQUEST", f"parameter {name} must be a number in [{lo}, {hi}]", {"path": path, "got": v})
-
-
 def _validate_params(params: Any, allowed: Dict[str, Dict[str, Any]], alias: bool = False) -> None:
     """Typed parameters: type, range, and "each independently optional and defaulting to
     unchanged". Unknown fields in the parameters object are rejected."""
@@ -251,7 +235,7 @@ def parse_request(doc: Any) -> ColorProject:
         raise PhotoError("INVALID_REQUEST", "request document must be a JSON object", {})
     if doc.get("schema") != REQUEST_SCHEMA_ID:
         raise PhotoError("INVALID_REQUEST", f"schema must be {REQUEST_SCHEMA_ID!r}", {"got": doc.get("schema")})
-    if len(doc) > 0 and set(doc) - {"schema", "project", "options"}:
+    if set(doc) - {"schema", "project", "options"}:
         raise PhotoError("INVALID_REQUEST", "unknown top-level field", {"fields": sorted(set(doc) - {"schema", "project", "options"})})
     _validate_forbidden(doc)
     project = doc.get("project")
