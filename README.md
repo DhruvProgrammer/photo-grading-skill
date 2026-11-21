@@ -1,13 +1,6 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/logo/photo-grading-skill-wordmark-white.svg">
-    <img src="brand/logo/photo-grading-skill-wordmark-black.svg" height="48" alt="photo-grading-skill">
-  </picture>
-</p>
-
-<p align="center">
-  <picture>
     <img src="brand/banner.png" width="100%" alt="Cinematic Photo Grading Skill Banner">
   </picture>
 </p>
