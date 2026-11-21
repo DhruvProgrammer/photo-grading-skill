@@ -1,5 +1,4 @@
 
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="brand/logo/photo-grading-skill-wordmark-white.svg">
