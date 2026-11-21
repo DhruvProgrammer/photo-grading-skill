@@ -1,0 +1,36 @@
+---
+name: photo-grading
+description: Deterministic photo color grading / photo color correction execution Skill for AI photo agents. Use it when a caller has decided which color treatment to apply to a photo and needs it executed safely: the 3-way Color Grading wheels (Shadows / Midtones / Highlights + Global: hue, saturation, luminance per wheel; blending; balance), typed photo corrections (white balance temperature/tint, exposure, contrast, highlights/shadows/blacks/whites, saturation, sharpness), or 3D LUT application (PHOTO_LUT_APPLY). Executed as typed, deterministic operations through FFmpeg's photo filters (lut3d, eq, hue, unsharp), with output validation and provenance. Do NOT use it to decide which color treatment or look to apply, to judge a photo "cinematic", or to run arbitrary ffmpeg filters. WHITE_BALANCE is an alias of PHOTO_CORRECTION restricted to temperature/tint.
+---
+
+# photo-grading
+
+Machine interface: `photo-grading run - --json` with a `photo-grading/request@1` document on
+stdin; exactly one `photo-grading/response@1` document on stdout. `photo-grading skill --json`
+prints the contract; `doctor --json` the environment; `plan - --json` a dry run;
+`validate - --json` a schema check.
+
+Rules for a calling agent:
+1. Decide first: which operation, which look (the caller already did this). This skill has
+   no defaults for creative parameters: wheels/parameters come from the request.
+2. Give explicit, typed parameters; each is independently optional, range-checked, and
+   "unchanged" when omitted. `PHOTO_GRADING`: `shadows_hue/shadows_saturation/shadows_luminance`,
+   `midtones_*`, `highlights_*`, `global_*` (hue 0-360, saturation 0-100, luminance -100..100),
+   `blending` (0-100, default 50), `balance` (-100..100, default 0). `PHOTO_CORRECTION`:
+   `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100),
+   `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites`
+   (-100..100), `saturation` (-100..100), `sharpness` (0..100). `PHOTO_LUT_APPLY`: `lut_path` (required).
+3. Never send commands, argv, filter strings or executable paths: the request is rejected.
+4. Keep outputs inside the workspace, never at the input path; set `overwrite: true`
+   deliberately. This skill never mutates inputs.
+5. Read `results[].status`, `outputs[].provenance` and `error` from the JSON; exit code 0
+   only when `ok` is true.
+6. Measurements (signalstats means) are OBSERVED values; report what you saw.
+
+Wheel semantics (PHOTO_GRADING): zones are BT.709 luma bands (shadows/midtones/highlights).
+Each wheel with `saturation > 0` rotates a pixel's hue by the wheel's hue and scales its
+saturation by saturation/100 within its zone. `blending` mixes the tinted LUT back toward
+identity; `balance` moves the zone boundaries. The classic cinematic look is teal shadows
++ orange highlights.
+
+See README.md for the schemas, operation table, error codes and provenance.

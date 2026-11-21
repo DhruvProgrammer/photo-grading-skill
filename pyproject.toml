@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photo-grading-skill"
+version = "0.1.0"
+description = "Deterministic photo color grading / photo color correction execution (3-way color grading wheels, white balance, exposure/contrast/levels, LUT application) through FFmpeg. Not an AI agent."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [{name = "DhruvProgrammer"}]
+keywords = ["photo", "color", "grading", "color-grading", "lut", "photoshop", "lightroom", "aesthetic", "skills", "ffmpeg"]
+dependencies = []
+
+[project.scripts]
+photo-grading = "photo_grading.cli:main"
+
+[project.urls]
+Repository = "https://github.com/DhruvProgrammer/photo-grading-skill"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

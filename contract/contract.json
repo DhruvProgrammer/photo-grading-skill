@@ -1,0 +1,513 @@
+{
+  "schema": "photo-grading/contract@1",
+  "skill_id": "photo-grading",
+  "id": "photo-grading",
+  "name": "photo-grading-skill",
+  "package": "photo-grading-skill",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "kind": "execution",
+  "role": "photo color grading / photo color correction execution (processing); not decision, not measurement, not automatic look/LUT selection",
+  "description": "Deterministic photo color grading: 3-way color grading wheels (teal & orange, warm & cool, any hue/saturation palette), typed photo corrections (white balance, exposure, contrast, levels, vibrance, sharpness), and 3D LUT application - executed as typed, validated, deterministic operations through FFmpeg, with output validation and provenance. Not an AI agent: it never decides which look to apply, nor which correction values to use.",
+  "repository": "https://github.com/DhruvProgrammer/photo-grading-skill",
+  "not_provided": [
+    "AI reasoning",
+    "decisions",
+    "automatic grading",
+    "automatic look selection",
+    "automatic LUT selection",
+    "image understanding",
+    "scene/face detection",
+    "automatic white balance (WHITE_BALANCE takes explicit temperature/tint values)",
+    "automatic color correction guesswork (no auto exposure/contrast/white balance)",
+    "shell execution",
+    "network access"
+  ],
+  "tools": [
+    {
+      "tool_id": "photo-grading/run",
+      "skill_id": "photo-grading",
+      "version": "0.1.0",
+      "role": "execution",
+      "description": "Execute a typed photo project and write a validated photo with provenance",
+      "inputs": [
+        "request document (stdin)"
+      ],
+      "input_type": "photo-grading/request@1",
+      "produces_output": true,
+      "writes_media": true,
+      "deterministic": true,
+      "idempotency_hint": "content_equivalent; intermediates reused by deterministic operation id",
+      "operations": [
+        "PHOTO_CORRECTION",
+        "PHOTO_GRADING",
+        "PHOTO_LUT_APPLY"
+      ],
+      "supports": {
+        "dry_run": true,
+        "timeout": true,
+        "cancel": true,
+        "validate": true
+      },
+      "verification": "every artifact is re-probed: photo stream exists, width/height unchanged from the source (tolerance 1px), readable; measured signalstats of the input and output recorded as OBSERVED values in provenance",
+      "provenance": "OBSERVED",
+      "mutates_input": false,
+      "delegates_to": [
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "execution": "local subprocess: `ffmpeg -nostdin -y -i <photo> -vf <filters> <out>` / `ffprobe -v error -print_format json -show_format -show_streams <photo>` / `ffmpeg -i <photo> -vf signalstats -f null -`; no shell, no network, no user-supplied filter strings (values reaching argv are fixed flags or paths this skill resolved itself)"
+    }
+  ],
+  "operations": [
+    {
+      "type": "PHOTO_CORRECTION",
+      "description": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), saturation (-100..100), sharpness (0..100). Executed via ffmpeg eq/hue/unsharp plus a generated LUT for the tonal bands.",
+      "inputs": 1,
+      "parameters": {
+        "white_balance_temperature": {
+          "type": "int",
+          "min": 2500,
+          "max": 10000,
+          "default": 6500
+        },
+        "white_balance_tint": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        },
+        "exposure": {
+          "type": "number",
+          "min": -10.0,
+          "max": 10.0,
+          "default": 0.0
+        },
+        "contrast": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "highlights": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "shadows": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "blacks": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "whites": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "saturation": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
+        "sharpness": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 25
+        }
+      },
+      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "required_capabilities": [
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "changes_duration": false,
+      "changes_resolution": false,
+      "deterministic": true
+    },
+    {
+      "type": "PHOTO_GRADING",
+      "description": "Apply the 3-way Color Grading wheels (Shadows / Midtones / Highlights + Global): each wheel tints its tonal zone with a hue and saturation, plus zone luminance; `blending` mixes the tinted LUT back to identity, `balance` moves the zone boundaries. Executed by generating a 3D .cube LUT and applying it with ffmpeg lut3d. The classic cinematic look is teal shadows + orange highlights.",
+      "inputs": 1,
+      "parameters": {
+        "shadows_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0
+        },
+        "shadows_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0
+        },
+        "shadows_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        },
+        "midtones_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0
+        },
+        "midtones_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0
+        },
+        "midtones_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        },
+        "highlights_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0
+        },
+        "highlights_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0
+        },
+        "highlights_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        },
+        "global_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0
+        },
+        "global_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0
+        },
+        "global_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        },
+        "blending": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 50
+        },
+        "balance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0
+        }
+      },
+      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "required_capabilities": [
+        "ffmpeg",
+        "ffprobe",
+        "lut3d"
+      ],
+      "changes_duration": false,
+      "changes_resolution": false,
+      "deterministic": true
+    },
+    {
+      "type": "PHOTO_LUT_APPLY",
+      "description": "Apply a 3D .cube LUT with ffmpeg lut3d. LUT is data read from disk, never a filter string.",
+      "inputs": 1,
+      "parameters": {
+        "lut_path": {
+          "type": "string",
+          "required": true,
+          "description": "Path to a .cube LUT file (3D, <=10 MiB)"
+        }
+      },
+      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "required_capabilities": [
+        "ffmpeg",
+        "ffprobe",
+        "lut3d"
+      ],
+      "changes_duration": false,
+      "changes_resolution": false,
+      "deterministic": true
+    }
+  ],
+  "operation_aliases": [
+    {
+      "type": "PHOTO_WHITE_BALANCE",
+      "alias_of": "PHOTO_CORRECTION",
+      "parameters": [
+        "white_balance_temperature",
+        "white_balance_tint",
+        "exposure",
+        "contrast",
+        "highlights",
+        "shadows",
+        "blacks",
+        "whites",
+        "saturation",
+        "sharpness"
+      ],
+      "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
+    },
+    {
+      "type": "WHITE_BALANCE",
+      "alias_of": "PHOTO_CORRECTION",
+      "parameters": [
+        "white_balance_temperature",
+        "white_balance_tint",
+        "exposure",
+        "contrast",
+        "highlights",
+        "shadows",
+        "blacks",
+        "whites",
+        "saturation",
+        "sharpness"
+      ],
+      "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
+    }
+  ],
+  "unsupported_operations": [
+    {
+      "type": "HDR_TO_SDR",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    },
+    {
+      "type": "RETAG",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    },
+    {
+      "type": "STRIP_DOVI",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    },
+    {
+      "type": "LEGALIZE",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    },
+    {
+      "type": "OCIO_TRANSFORM",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    },
+    {
+      "type": "MATCH_CAMERA",
+      "status": "not_implemented",
+      "reason": "this skill has no video operations"
+    }
+  ],
+  "output_formats": {
+    "jpg": {
+      "extension": ".jpg"
+    },
+    "jpeg": {
+      "extension": ".jpeg"
+    },
+    "png": {
+      "extension": ".png"
+    },
+    "tiff": {
+      "extension": ".tiff"
+    },
+    "tif": {
+      "extension": ".tif"
+    },
+    "webp": {
+      "extension": ".webp"
+    },
+    "bmp": {
+      "extension": ".bmp"
+    }
+  },
+  "photo_extensions": [
+    ".bmp",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".tif",
+    ".tiff",
+    ".webp"
+  ],
+  "geometry": {
+    "changes": "no implemented operation changes width/height",
+    "tolerance_px": 1
+  },
+  "execution_mode": "local",
+  "provenance": {
+    "per_operation": [
+      "operation_id",
+      "type",
+      "tool",
+      "input_hash",
+      "output_hash",
+      "parameters",
+      "measurements (before/after signalstats of the photo)",
+      "lut (LUT_APPLY/PHOTO_GRADING)"
+    ],
+    "per_output": [
+      "output_id",
+      "path",
+      "status",
+      "sha256",
+      "provenance"
+    ],
+    "identity": "sha256 over canonical JSON of {type, parameters, input_identity (sha256 of the file), tool_versions}; no timestamps, no UUIDs; the LUT's sha256 (not path) is used for LUT ops",
+    "philosophy": "measured values are OBSERVED and reported, never judged"
+  },
+  "request": {
+    "schema": "photo-grading/request@1",
+    "id_pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+    "reference_pattern": "^(source|op:[A-Za-z0-9][A-Za-z0-9._-]{0,63})$",
+    "forbidden_fields": [
+      "af",
+      "api_key",
+      "apply",
+      "args",
+      "argv",
+      "cmd",
+      "command",
+      "commands",
+      "cwd",
+      "denoiser",
+      "env",
+      "eval",
+      "exec",
+      "executable",
+      "ffmpeg",
+      "filter",
+      "filter_complex",
+      "filters",
+      "process",
+      "script",
+      "shell",
+      "vf",
+      "workspace"
+    ],
+    "shape": {
+      "schema": "photo-grading/request@1",
+      "project": {
+        "project_id": "id",
+        "source": {
+          "source_id": "id",
+          "path": "file"
+        },
+        "operations": [
+          {
+            "op_id": "id",
+            "type": "PHOTO_GRADING|PHOTO_CORRECTION|PHOTO_LUT_APPLY",
+            "input": "source|op:<id>",
+            "parameters": {}
+          }
+        ],
+        "outputs": [
+          {
+            "output_id": "id",
+            "operation": "source|op:<id>",
+            "path": "file",
+            "format": "jpg|jpeg|png|tiff|webp|bmp"
+          }
+        ]
+      },
+      "options?": {
+        "reuse_intermediates?": true,
+        "timeout?": 600,
+        "overwrite?": false
+      }
+    }
+  },
+  "response": {
+    "schema": "photo-grading/response@1",
+    "success": {
+      "ok": true,
+      "status": "ok",
+      "dry_run": "bool",
+      "plan": "...",
+      "results": "[OperationResult]",
+      "outputs": "[output artifact + provenance]"
+    },
+    "failure": {
+      "ok": false,
+      "status": "error|cancelled",
+      "error": {
+        "code": "one of errors.codes",
+        "message": "str",
+        "retryable": "bool",
+        "details": {}
+      }
+    }
+  },
+  "errors": {
+    "codes": [
+      "INVALID_REQUEST",
+      "INVALID_INPUT",
+      "PATH_NOT_ALLOWED",
+      "UNSUPPORTED_OPERATION",
+      "UNSUPPORTED_FORMAT",
+      "DEPENDENCY_ERROR",
+      "MISSING_INPUT",
+      "OUTPUT_ERROR",
+      "VALIDATION_ERROR",
+      "TOOL_ERROR",
+      "CANCELLED",
+      "INTERNAL_ERROR"
+    ],
+    "exit_codes": {
+      "INVALID_REQUEST": 2,
+      "INVALID_INPUT": 3,
+      "PATH_NOT_ALLOWED": 4,
+      "UNSUPPORTED_OPERATION": 5,
+      "UNSUPPORTED_FORMAT": 6,
+      "DEPENDENCY_ERROR": 8,
+      "MISSING_INPUT": 9,
+      "OUTPUT_ERROR": 10,
+      "VALIDATION_ERROR": 11,
+      "TOOL_ERROR": 12,
+      "CANCELLED": 13,
+      "INTERNAL_ERROR": 14
+    },
+    "retryable": {
+      "INVALID_REQUEST": false,
+      "INVALID_INPUT": false,
+      "PATH_NOT_ALLOWED": false,
+      "UNSUPPORTED_OPERATION": false,
+      "UNSUPPORTED_FORMAT": false,
+      "DEPENDENCY_ERROR": false,
+      "MISSING_INPUT": false,
+      "OUTPUT_ERROR": false,
+      "VALIDATION_ERROR": false,
+      "TOOL_ERROR": true,
+      "CANCELLED": true,
+      "INTERNAL_ERROR": false
+    }
+  },
+  "deterministic": true
+}
