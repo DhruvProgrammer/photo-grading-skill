@@ -14,7 +14,7 @@
 
 <p align="center">
   <picture>
-    <img src="brand/rainbow.jpg" width="100%" alt="colorful rainbow">
+    <img src="brand/banner.png" width="100%" alt="Cinematic Photo Grading Skill Banner">
   </picture>
 </p>
 
