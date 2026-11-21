@@ -60,8 +60,6 @@ class PathPolicy:
         path = _resolve(Path(path_str))
         if not path.is_file():
             raise PhotoError("INVALID_INPUT", f"{what} is missing or not a regular file: {path_str}", {"path": path_str})
-        if path.is_symlink() and _resolve(path) != path and False:
-            pass  # resolved target already checked below
         self._check_allowed(path, self.allowed_input_roots, what)
         return path
 

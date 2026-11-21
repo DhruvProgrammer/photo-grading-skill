@@ -64,7 +64,12 @@ def test_wheel_lut_balance_moves_boundaries(tmp_path, monkeypatch):
 
 def test_levels_lut(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
-    path = buildlut.build_levels_lut(shadows=-20, blacks=-5)
-    vals = _cube_vals(path)
-    assert vals[0][0] < 0 or vals[0][0] >= 0  # any int allowed; just structural
-    assert len(vals) == LUT_SIZE ** 3
+    empty = _cube_vals(buildlut.build_levels_lut())
+    tuned = _cube_vals(buildlut.build_levels_lut(shadows=-20, blacks=-5))
+    assert len(tuned) == LUT_SIZE ** 3
+    assert all(0.0 <= x <= 1.0 for v in tuned for x in v)
+    changed = [i for i in range(len(tuned)) if tuned[i] != empty[i]]
+    assert changed, "levels should change the LUT where the bands lift/darken"
+    # shadow-band points strictly darker: shadows=-20 in the shadows band, blacks=-5 below 0.25
+    darker = [i for i in changed if all(tuned[i][c] < empty[i][c] - 1e-9 for c in range(3))]
+    assert darker, "expected strictly darker points in the shadows/black bands"
