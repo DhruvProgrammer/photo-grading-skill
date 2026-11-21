@@ -16,3 +16,4 @@ dist/
 !brand/app-icon*.png
 !brand/app-icon-dark.png
 !brand/logo/*.svg
+!brand/rainbow.jpg
