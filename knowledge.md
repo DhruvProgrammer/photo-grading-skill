@@ -425,3 +425,68 @@ as `PHOTO_GRADING.strength 0.5` on the same wheels (verified empirically).
 (0..50) → `noise=alls=N` (verified filter exists in ffmpeg 8.0.1).
 "Much of what makes a grade feel cinematic is subtlety: 'a lot of the difference is you don't
 really want to see the effect'".
+
+---
+
+## 18. Color theory fundamentals (video review)
+
+A general color-theory walkthrough (RYB painter's wheel, hue/saturation/luminance).
+Key tips/trick extraction (cross-applicable to photo color grading):
+
+### The color wheel & basic terms
+
+- Wheel: 3 primaries (Red/Yellow/Blue - the painter's wheel), secondaries, tertiary colors.
+- **Hue** - "simply the color itself" (name any color - red, orange, blue - "pun intended").
+- **Saturation** - intensity of the color: pure blue -> reduced saturation -> gray; darker blue ->
+  black, lighter blue -> white.
+- **Luminance** - how bright/dark the color is. "The reason why luminous is so important is because
+  it mainly controls the contrast between the colors."
+
+### Luminous contrast - the B&W check trick
+
+- "Simple trick, convert your image into black and white. If everything looks flat, it means there is
+  not much of luminous contrast." - the skill's before/after signalstats measurements (YAVG/UAVG/VAVG)
+  record the same idea (luminance + chroma before/after) as OBSERVED values.
+
+### Color associations (guidelines, not rules)
+
+- Red = passion, energy; Blue = stability, trust (also isolation). Etc. "At the end, these are just
+  on paper associations. It need not always be true." - the skill: don't force associations; wheels.
+
+### Frame composition with color
+
+- "If everything in the frame is super saturated and vibrant, the viewer might get confused about what
+  to focus on" - "some colors are comparatively more saturated than others - the eyes naturally be
+  drawn to them. Let's divide the frame into two groups, saturated colors and neutral colors.
+  Saturated colors as the main subject and neutral colors as the negative space" - balance: "one or
+  two colors can dominate while the other colors can play supporting roles" - "prevents chaos".
+
+### Warm/cool colors
+
+- Warm = reds, oranges, yellows (lows on the color wheel's "temperature"); cool = blues, greens,
+  purples (higher temperatures). Note the opposite convention from white-balance "temperature" -
+  don't get confused (skill: white_balance_temperature).
+
+### Famous looks: Teal & Orange
+
+- "The famous teal and orange look works because it's a contrast between warm and cool colors. Skin
+  tones usually fall on the warm side while the background or the shadows can be pushed towards the
+  teal side" - the skill: the default wheels (shadows hue 190, highlights hue 40).
+
+### Color harmony (cheat sheet)
+
+- **Monochrome** - one color, different shades (not black and white!).
+- **Complementary** - opposite on the wheel (Teal & Orange is the example).
+- **Analogous** - three side by side, natural, easy on the eyes.
+- Guidelines; "you don't have to always stick to it".
+
+### Applying theory to shots
+
+- Mindful framing: "which colors help my subject to stand out and which are distracting" - portraits:
+  outfits (pop vs blend); products/food: pop colors.
+- "Color actually plays a huge role in a consistent visual style" - style from story/emotion.
+- "don't mistake... experimenting - developing a style is important but if you don't experiment, you
+  won't learn" - the skill: contrast/strength/strength dials, virtual copies.
+- "Color doesn't just make your images look good - different colors feel different."
+- Practical advice for styles: "Colors can basically be divided into two groups... warm colors and
+  cool colors... you can stick to warm or cool or use a combination".
