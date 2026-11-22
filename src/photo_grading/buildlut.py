@@ -18,7 +18,12 @@ the same wheel values always produce the same LUT bytes.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+import os
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from .errors import PhotoError
 
 WHEEL_PARAMS = ("hue", "saturation", "luminance")
 WHEELS = ("shadows", "midtones", "highlights", "global")
@@ -108,20 +113,23 @@ def _wheel_zone(luma: float, lo: float, hi: float, shadow_sat: float, highlights
 
 
 def build_wheel_lut(wheels: Dict[str, Dict[str, Any]], blending: int = DEFAULT_BLENDING,
-                    balance: int = DEFAULT_BALANCE, size: int = LUT_SIZE) -> str:
+                    balance: int = DEFAULT_BALANCE, strength: float = 1.0, size: int = LUT_SIZE) -> str:
     """Generate an identity-based 3D LUT from the 3-way wheels; returns the .cube file path.
 
     `wheels` maps "shadows"/"midtones"/"highlights"/"global" to {hue, saturation, luminance}.
+    `strength` (0..1, default 1.0) dials the overall grade down: the effective blend becomes
+    `blending/100 * strength` — like a "look dial" ("dial it back"), per the transcript's tip
+    that a grade should be scalable to the preferred strength.
     The caller places the file in the run's scratch dir; this builder only computes the bytes.
     Returns the LUT path."""
     import os
-    from pathlib import Path
     params = {w: {**DEFAULT_WHEEL, **(wheels.get(w) or {})} for w in WHEELS}
     for w in WHEELS:
         for k in WHEEL_PARAMS:
             params[w][k] = float(params[w].get(k) or 0)
     lo, hi = _zone_bounds(balance)
-    blending = _clamp01((blending or 0) / 100.0)
+    strength = max(0.0, min(1.0, float(strength)))
+    blending = _clamp01((blending or 0) / 100.0 * strength)
     shadows_sat, highlights_sat = params["shadows"]["saturation"], params["highlights"]["saturation"]
     cube: List[str] = ["TITLE PHOTO_GRADING_WHEELS", f"LUT_3D_SIZE {size}", ""]
     n = size
@@ -157,6 +165,40 @@ def build_wheel_lut(wheels: Dict[str, Dict[str, Any]], blending: int = DEFAULT_B
     return str(p)
 
 
+def scale_lut_strength(lut_path: str, strength: float, work_dir: Optional[str] = None) -> str:
+    """Scale a user .cube LUT toward identity: out' = in + strength*(entry - in), where
+    `in` is the LUT's input point. Entry i of a LUT of size N maps input point
+    (r = i // (N*N), g = (i // N) % N, b = i % N) (the R-slowest/B-fastest order ffmpeg reads).
+    Writes the scaled LUT into the run's scratch dir and returns its path (a new file: the
+    user's LUT is never modified). strength 0 -> identity; strength 1 -> the LUT unchanged."""
+    import hashlib
+    lines = Path(lut_path).read_text(encoding="ascii").splitlines()
+    m = re.search(r"LUT_3D_SIZE (\d+)", lines[1] if len(lines) > 1 else "")
+    if not m:
+        raise PhotoError("UNSUPPORTED_FORMAT", f"LUT file is missing a LUT_3D_SIZE header: {lut_path}")
+    n = int(m.group(1))
+    entries = [tuple(map(float, ln.split())) for ln in lines[3:] if ln.strip()]
+    if len(entries) != n * n * n:
+        raise PhotoError("UNSUPPORTED_FORMAT", f"LUT file has {len(entries)} entries, expected {n * n * n} (LUT_3D_SIZE {n}): {lut_path}")
+    strength = max(0.0, min(1.0, float(strength)))
+    denom = max(1, n - 1)
+    out: List[Tuple[float, float, float]] = []
+    for i, (e_r, e_g, e_b) in enumerate(entries):
+        in_r = i // (n * n) / denom
+        in_g = ((i // n) % n) / denom
+        in_b = (i % n) / denom
+        out.append((_clamp01(in_r + strength * (e_r - in_r)),
+                    _clamp01(in_g + strength * (e_g - in_g)),
+                    _clamp01(in_b + strength * (e_b - in_b))))
+    header = "\n".join([lines[0], lines[1]] + (lines[2:3] or [])) + "\n"
+    body = "\n".join(f"{v[0]:.6f} {v[1]:.6f} {v[2]:.6f}" for v in out) + "\n"
+    digest = hashlib.sha256((header + body).encode("ascii")).hexdigest()[:16]
+    p = Path(work_dir or os.getcwd()) / f"lut_scaled_{digest}.cube"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(header + body, encoding="ascii")
+    return str(p)
+
+
 def build_levels_lut(shadows: float = 0.0, highlights: float = 0.0, blacks: float = 0.0,
                      whites: float = 0.0, size: int = LUT_SIZE) -> str:
     """Generate a LUT from the tonal adjustments of PHOTO_CORRECTION: directional lifts on
@@ -170,7 +212,6 @@ def build_levels_lut(shadows: float = 0.0, highlights: float = 0.0, blacks: floa
     - whites (v > 0.75): v += whites/100 * 0.35
     Only bands with a nonzero parameter change anything."""
     import os
-    from pathlib import Path
     lines = ["TITLE PHOTO_CORRECTION_LEVELS", f"LUT_3D_SIZE {size}", ""]
     n = size
     for iz in range(n):

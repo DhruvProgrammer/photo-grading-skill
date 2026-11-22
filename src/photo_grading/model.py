@@ -109,6 +109,7 @@ PHOTO_GRADING_PARAMS: Dict[str, Dict[str, Any]] = {
     **_wheel("shadows"), **_wheel("midtones"), **_wheel("highlights"), **_wheel("global"),
     "blending": {"type": "int", "min": 0, "max": 100, "default": 50},
     "balance": {"type": "int", "min": -100, "max": 100, "default": 0},
+    "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0},
 }
 
 PHOTO_CORRECTION_PARAMS: Dict[str, Dict[str, Any]] = {
@@ -122,6 +123,7 @@ PHOTO_CORRECTION_PARAMS: Dict[str, Dict[str, Any]] = {
     "whites": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "saturation": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "sharpness": {"type": "int", "min": 0, "max": 100, "default": 25},
+    "grain": {"type": "int", "min": 0, "max": 50, "default": 0},
 }
 
 # For the WHITE_BALANCE alias, the allowed parameter set at request level is restricted to
@@ -285,7 +287,8 @@ def parse_request(doc: Any) -> ColorProject:
         elif otype == "PHOTO_CORRECTION":
             allowed = PHOTO_CORRECTION_PARAMS
         else:  # PHOTO_LUT_APPLY
-            allowed = {"lut_path": {"type": "string", "required": True, "default": None}}
+            allowed = {"lut_path": {"type": "string", "required": True, "default": None},
+                       "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0}}
         if otype != "PHOTO_LUT_APPLY":
             _validate_params(params, allowed)
         else:
@@ -295,8 +298,8 @@ def parse_request(doc: Any) -> ColorProject:
                 raise PhotoError("INVALID_REQUEST", "parameter lut_path is required", {"path": "operations[].parameters.lut_path"})
             if not params["lut_path"].lower().endswith(".cube"):
                 raise PhotoError("UNSUPPORTED_FORMAT", "LUT must be a .cube file", {"lut_path": params["lut_path"]})
-        if otype == "PHOTO_LUT_APPLY" and set(params) - {"lut_path"}:
-            raise PhotoError("INVALID_REQUEST", f"PHOTO_LUT_APPLY takes no other parameters (got {sorted(set(params) - {'lut_path'})})", {})
+        if otype == "PHOTO_LUT_APPLY" and set(params) - {"lut_path", "strength"}:
+            raise PhotoError("INVALID_REQUEST", f"PHOTO_LUT_APPLY takes no other parameters (got {sorted(set(params) - {'lut_path', 'strength'})})", {})
         ops.append(ColorOperation(oid, otype, ref, dict(params)))
         op_index[oid] = ops[-1]
 

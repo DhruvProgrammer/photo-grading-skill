@@ -44,7 +44,9 @@ def operation_specs() -> List[Dict[str, Any]]:
     for typ in sorted(OPERATION_TYPES):
         params = {"PHOTO_GRADING": PHOTO_GRADING_PARAMS, "PHOTO_CORRECTION": PHOTO_CORRECTION_PARAMS,
                   "PHOTO_LUT_APPLY": {"lut_path": {"type": "string", "required": True,
-                                                    "description": "Path to a .cube LUT file (3D, <=10 MiB)"}}}[typ]
+                                                    "description": "Path to a .cube LUT file (3D, <=10 MiB)"},
+                                                   "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0,
+                                                                "description": "Scale the LUT toward identity: 1 = full application, 0 = none"}}}[typ]
         out.append({"type": typ, "description": _OPERATION_DESCRIPTIONS[typ],
                     "inputs": 1, "parameters": _param_specs(params), "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
                     "required_capabilities": ["ffmpeg", "ffprobe", *(["lut3d"] if typ in ("PHOTO_GRADING", "PHOTO_LUT_APPLY") else [])],

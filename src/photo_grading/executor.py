@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import SKILL_ID, VERSION
-from .buildlut import build_levels_lut, build_wheel_lut
+from .buildlut import build_levels_lut, build_wheel_lut, scale_lut_strength
 from .errors import PhotoError
 from .model import ColorOperation
 from .security import PathPolicy
@@ -172,6 +172,10 @@ class Executor:
         sharpness = p.get("sharpness")
         if sharpness:
             filters.append(f"unsharp=la.size=3:amount={min(1.0, float(sharpness) / 100.0):.4g}")
+        # film grain (transcript: "film grain this is really important... use it sparingly")
+        grain = p.get("grain")
+        if grain:
+            filters.append(f"noise=alls={int(grain)}")
         return filters
 
     def build_chain(self, op: ColorOperation, work_dir: Path) -> List[str]:
@@ -179,12 +183,17 @@ class Executor:
         if op.type == "PHOTO_GRADING":
             wheels = {w: {k: op.parameters.get(f"{w}_{k}", 0) for k in ("hue", "saturation", "luminance")}
                       for w in ("shadows", "midtones", "highlights", "global")}
-            lut = build_wheel_lut(wheels, op.parameters.get("blending", 50), op.parameters.get("balance", 0))
+            lut = build_wheel_lut(wheels, op.parameters.get("blending", 50), op.parameters.get("balance", 0),
+                                  strength=op.parameters.get("strength", 1.0))
             return [f"lut3d=file={_lut_arg(lut)}"]
         if op.type == "PHOTO_CORRECTION":
             return self._photo_correction_filter(op)
         if op.type == "PHOTO_LUT_APPLY":
-            return [f"lut3d=file={_lut_arg(op.parameters['lut_path'])}"]
+            lut = op.parameters["lut_path"]
+            strength = float(op.parameters.get("strength", 1.0))
+            if strength < 1.0:
+                lut = scale_lut_strength(lut, strength, str(self.policy.work_dir()))
+            return [f"lut3d=file={_lut_arg(lut)}"]
         raise PhotoError("UNSUPPORTED_OPERATION", f"no chain for type {op.type!r}", {"type": op.type})
 
     def _apply(self, src: Path, dst: Path, op: ColorOperation, timeout: float) -> Dict[str, Any]:

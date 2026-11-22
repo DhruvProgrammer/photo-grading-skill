@@ -124,6 +124,12 @@
           "min": 0,
           "max": 100,
           "default": 25
+        },
+        "grain": {
+          "type": "int",
+          "min": 0,
+          "max": 50,
+          "default": 0
         }
       },
       "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
@@ -223,6 +229,12 @@
           "min": -100,
           "max": 100,
           "default": 0
+        },
+        "strength": {
+          "type": "number",
+          "min": 0.0,
+          "max": 1.0,
+          "default": 1.0
         }
       },
       "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
@@ -244,6 +256,13 @@
           "type": "string",
           "required": true,
           "description": "Path to a .cube LUT file (3D, <=10 MiB)"
+        },
+        "strength": {
+          "type": "number",
+          "min": 0.0,
+          "max": 1.0,
+          "default": 1.0,
+          "description": "Scale the LUT toward identity: 1 = full application, 0 = none"
         }
       },
       "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
@@ -271,7 +290,8 @@
         "blacks",
         "whites",
         "saturation",
-        "sharpness"
+        "sharpness",
+        "grain"
       ],
       "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
     },
@@ -288,7 +308,8 @@
         "blacks",
         "whites",
         "saturation",
-        "sharpness"
+        "sharpness",
+        "grain"
       ],
       "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
     }
