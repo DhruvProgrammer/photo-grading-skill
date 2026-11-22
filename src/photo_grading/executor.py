@@ -267,6 +267,7 @@ class Executor:
             # from the name, and a photo never changes container in this skill
             dst = self.policy.work_dir() / f"{op.op_id}{src.suffix}"
             identity = self._identity(op, src_probe, tool_versions)
+            hit = None
             if reuse:
                 hit = self._check_reuse(dst, identity, src, op)
                 result = hit if hit is not None else self._apply(current, dst, op, project.options["timeout"])
