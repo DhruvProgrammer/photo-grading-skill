@@ -73,3 +73,36 @@ def test_levels_lut(tmp_path, monkeypatch):
     # shadow-band points strictly darker: shadows=-20 in the shadows band, blacks=-5 below 0.25
     darker = [i for i in changed if all(tuned[i][c] < empty[i][c] - 1e-9 for c in range(3))]
     assert darker, "expected strictly darker points in the shadows/black bands"
+
+
+def _identity_lut_points(n=LUT_SIZE):
+    # file order: R-slowest/B-fastest; i = r*n^2 + g*n + b
+    return [(i // (n * n) / (n - 1), (i // n) % n / (n - 1), i % n / (n - 1)) for i in range(n ** 3)]
+
+
+def test_tone_curve_lut_defaults_identity(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
+    vals = _cube_vals(buildlut.build_tone_curve_lut())
+    assert all(abs(a - b) < 1e-5 for va, vb in zip(vals, _identity_lut_points()) for a, b in zip(va, vb))
+
+
+def test_tone_curve_lut_lifts_blacks(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
+    vals = _cube_vals(buildlut.build_tone_curve_lut(blacks=0.2))
+    assert vals[0] == (0.2, 0.2, 0.2), "L=0 should map to the blacks anchor"
+    assert vals[-1] == (1.0, 1.0, 1.0), "L=1 identity"
+
+
+def test_hsl_lut_green_hue_shift(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
+    empty = _cube_vals(buildlut.build_hsl_lut({}))
+    tuned = _cube_vals(buildlut.build_hsl_lut({"green": {"hue": 30, "saturation": 0, "luminance": -10}}))
+    assert tuned != empty, "green tweaks should change the LUT"
+    assert any(tuned[i] != empty[i] for i in range(len(tuned))), "some pixels changed"
+
+
+def test_hsl_lut_blue_luminance(tmp_path, monkeypatch):
+    monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
+    empty = _cube_vals(buildlut.build_hsl_lut({}))
+    tuned = _cube_vals(buildlut.build_hsl_lut({"blue": {"hue": 0, "saturation": 0, "luminance": -20}}))
+    assert any(tuned[i] != empty[i] for i in range(len(tuned))), "blue luminance should darken blue pixels"

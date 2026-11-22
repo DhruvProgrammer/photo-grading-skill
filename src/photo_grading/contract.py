@@ -10,7 +10,7 @@ from . import (CONTRACT_SCHEMA_VERSION, PACKAGE_NAME, REQUEST_SCHEMA_VERSION,
                RESPONSE_SCHEMA_VERSION, SKILL_ID, VERSION)
 from .errors import ERROR_CODES, ERROR_TABLE, EXIT_CODES
 from .model import (OPERATION_ALIASES, OPERATION_TYPES, OUTPUT_FORMATS, PHOTO_CORRECTION_PARAMS,
-                    PHOTO_GRADING_PARAMS, PHOTO_EXTENSIONS, FORBIDDEN_KEYS, ID_RE, REF_RE)
+                    PHOTO_GRADING_PARAMS, PHOTO_HSV_PARAMS, PHOTO_EXTENSIONS, FORBIDDEN_KEYS, ID_RE, REF_RE)
 
 CONTRACT_SCHEMA_ID = f"{SKILL_ID}/contract@{CONTRACT_SCHEMA_VERSION}"
 
@@ -36,6 +36,9 @@ _OPERATION_DESCRIPTIONS = {
                         "saturation (-100..100), sharpness (0..100). Executed via ffmpeg eq/hue/unsharp plus a "
                         "generated LUT for the tonal bands.",
     "PHOTO_LUT_APPLY": "Apply a 3D .cube LUT with ffmpeg lut3d. LUT is data read from disk, never a filter string.",
+    "PHOTO_HSV": "Per-hue-family HSL tweaks (red/orange/yellow/green/cyan/blue/magenta): hue/saturation/"
+                 "luminance shifts of the pixels in each family, executed via a generated LUT "
+                 "(buildlut.build_hsl_lut) with ffmpeg lut3d.",
 }
 
 
@@ -46,10 +49,10 @@ def operation_specs() -> List[Dict[str, Any]]:
                   "PHOTO_LUT_APPLY": {"lut_path": {"type": "string", "required": True,
                                                     "description": "Path to a .cube LUT file (3D, <=10 MiB)"},
                                                    "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0,
-                                                                "description": "Scale the LUT toward identity: 1 = full application, 0 = none"}}}[typ]
+                                                                "description": "Scale the LUT toward identity: 1 = full application, 0 = none"}}, "PHOTO_HSV": PHOTO_HSV_PARAMS}[typ]
         out.append({"type": typ, "description": _OPERATION_DESCRIPTIONS[typ],
                     "inputs": 1, "parameters": _param_specs(params), "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
-                    "required_capabilities": ["ffmpeg", "ffprobe", *(["lut3d"] if typ in ("PHOTO_GRADING", "PHOTO_LUT_APPLY") else [])],
+                    "required_capabilities": ["ffmpeg", "ffprobe", *(["lut3d"] if typ in ("PHOTO_GRADING", "PHOTO_LUT_APPLY", "PHOTO_HSV") else [])],
                     "changes_duration": False, "changes_resolution": False, "deterministic": True})
     return out
 

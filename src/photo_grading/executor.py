@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import SKILL_ID, VERSION
-from .buildlut import build_levels_lut, build_wheel_lut, scale_lut_strength
+from .buildlut import HSV_FAMILIES, build_hsl_lut, build_levels_lut, build_tone_curve_lut, build_wheel_lut, scale_lut_strength
 from .errors import PhotoError
 from .model import ColorOperation
 from .security import PathPolicy
@@ -176,6 +176,16 @@ class Executor:
         grain = p.get("grain")
         if grain:
             filters.append(f"noise=alls={int(grain)}")
+        # tone curve (user feedback #3: "Rebuild contrast with a tone curve: anchor deep blacks
+        # without crushing, smooth the highlight shoulder"): piecewise-linear anchors
+        tone_defaults = {"tone_blacks": 0.0, "tone_shadows": 0.15, "tone_midtones": 0.5,
+                         "tone_highlights": 0.85, "tone_whites": 1.0}
+        tone = {k: p.get(k) for k in tone_defaults}
+        if any(v is not None and v != d for v, d in zip(tone.values(), tone_defaults.values())):
+            lut = build_tone_curve_lut(p.get("tone_blacks", 0.0), p.get("tone_shadows", 0.15),
+                                       p.get("tone_midtones", 0.5), p.get("tone_highlights", 0.85),
+                                       p.get("tone_whites", 1.0))
+            filters.append(f"lut3d=file={_lut_arg(lut)}")
         return filters
 
     def build_chain(self, op: ColorOperation, work_dir: Path) -> List[str]:
@@ -193,6 +203,12 @@ class Executor:
             strength = float(op.parameters.get("strength", 1.0))
             if strength < 1.0:
                 lut = scale_lut_strength(lut, strength, str(self.policy.work_dir()))
+            return [f"lut3d=file={_lut_arg(lut)}"]
+        if op.type == "PHOTO_HSV":
+            # per-hue-family tweaks via the HSL LUT (user feedback #4)
+            tweaks = {fam: {k: op.parameters.get(f"{fam}_{k}", 0) for k in ("hue", "saturation", "luminance")}
+                      for fam in HSV_FAMILIES}
+            lut = build_hsl_lut(tweaks)
             return [f"lut3d=file={_lut_arg(lut)}"]
         raise PhotoError("UNSUPPORTED_OPERATION", f"no chain for type {op.type!r}", {"type": op.type})
 

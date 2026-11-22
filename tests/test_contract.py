@@ -17,7 +17,7 @@ def test_contract_identity():
 def test_contract_operations():
     c = skill_contract()
     types = [o["type"] for o in c["operations"]]
-    assert types == ["PHOTO_CORRECTION", "PHOTO_GRADING", "PHOTO_LUT_APPLY"]
+    assert types == ["PHOTO_CORRECTION", "PHOTO_GRADING", "PHOTO_HSV", "PHOTO_LUT_APPLY"]
     for o in c["operations"]:
         assert o["changes_duration"] is False
         assert o["changes_resolution"] is False

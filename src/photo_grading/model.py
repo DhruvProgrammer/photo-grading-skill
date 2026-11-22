@@ -51,7 +51,7 @@ OUTPUT_FORMATS: Dict[str, Dict[str, Any]] = {
 PHOTO_EXTENSIONS = tuple(fmt["extension"] for fmt in OUTPUT_FORMATS.values())
 
 # operation_aliases: request-level aliases, resolved to their target type at validation.
-OPERATION_TYPES = ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY")
+OPERATION_TYPES = ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV")
 OPERATION_ALIASES = {"WHITE_BALANCE": "PHOTO_CORRECTION", "PHOTO_WHITE_BALANCE": "PHOTO_CORRECTION"}
 
 
@@ -124,7 +124,32 @@ PHOTO_CORRECTION_PARAMS: Dict[str, Dict[str, Any]] = {
     "saturation": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "sharpness": {"type": "int", "min": 0, "max": 100, "default": 25},
     "grain": {"type": "int", "min": 0, "max": 50, "default": 0},
+    # Tone curve anchors (user feedback #3: "Rebuild contrast with a tone curve: anchor deep
+    # blacks..., smooth the highlight shoulder"): piecewise-linear on BT.709 luma, anchors at
+    # L=0->blacks, L=0.15->shadows, L=0.5->midtones, L=0.85->highlights, L=1->whites;
+    # identity at the defaults.
+    "tone_blacks": {"type": "number", "min": 0.0, "max": 2.0, "default": 0.0},
+    "tone_shadows": {"type": "number", "min": 0.0, "max": 2.0, "default": 0.15},
+    "tone_midtones": {"type": "number", "min": 0.0, "max": 2.0, "default": 0.5},
+    "tone_highlights": {"type": "number", "min": 0.0, "max": 2.0, "default": 0.85},
+    "tone_whites": {"type": "number", "min": 0.0, "max": 2.0, "default": 1.0},
 }
+
+
+def _hsv_fam_params() -> Dict[str, Dict[str, Any]]:
+    """PHOTO_HSV: per-color-family HSL tweaks (user feedback #4: HSL greens/blues/reds...)."""
+    out: Dict[str, Dict[str, Any]] = {}
+    for fam in ("red", "orange", "yellow", "green", "cyan", "blue", "magenta"):
+        out[f"{fam}_hue"] = {"type": "int", "min": 0, "max": 360, "default": 0,
+                              "description": f"hue shift of the {fam} family"}
+        out[f"{fam}_saturation"] = {"type": "int", "min": 0, "max": 100, "default": 0,
+                                    "description": f"saturation scale of the {fam} family (0 = untouched)"}
+        out[f"{fam}_luminance"] = {"type": "int", "min": -100, "max": 100, "default": 0,
+                                   "description": f"luminance shift of the {fam} family"}
+    return out
+
+
+PHOTO_HSV_PARAMS: Dict[str, Dict[str, Any]] = _hsv_fam_params()
 
 # For the WHITE_BALANCE alias, the allowed parameter set at request level is restricted to
 # white-balance fields: temperature + tint only (the alias is resolved to PHOTO_CORRECTION at
@@ -286,6 +311,8 @@ def parse_request(doc: Any) -> ColorProject:
             allowed = PHOTO_GRADING_PARAMS
         elif otype == "PHOTO_CORRECTION":
             allowed = PHOTO_CORRECTION_PARAMS
+        elif otype == "PHOTO_HSV":
+            allowed = PHOTO_HSV_PARAMS
         else:  # PHOTO_LUT_APPLY
             allowed = {"lut_path": {"type": "string", "required": True, "default": None},
                        "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0}}

@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import pytest  # noqa: E402
 
 from photo_grading.errors import PhotoError  # noqa: E402
-from photo_grading.model import OPERATION_ALIASES, OPERATION_TYPES, parse_request  # noqa: E402
+from photo_grading.model import (OPERATION_ALIASES, OPERATION_TYPES, PHOTO_HSV_PARAMS,  # noqa: E402
+                                  parse_request)
 
 SCHEMA = "photo-grading/request@1"
 
@@ -117,5 +118,47 @@ def test_output_operation_must_be_declared():
 
 
 def test_operation_types_and_aliases_lists():
-    assert OPERATION_TYPES == ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY")
+    assert OPERATION_TYPES == ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV")
     assert OPERATION_ALIASES["WHITE_BALANCE"] == "PHOTO_CORRECTION"
+
+
+def test_photo_hsv_op():
+    doc = {"schema": SCHEMA,
+           "project": {"project_id": "h", "source": {"source_id": "s.png", "path": "s.png"},
+                       "operations": [{"op_id": "h", "type": "PHOTO_HSV", "input": "source",
+                                        "parameters": {"green_hue": 100, "green_luminance": -15,
+                                                       "blue_hue": 240, "blue_saturation": 20}}],
+                       "outputs": [{"output_id": "o", "operation": "op:h", "path": "o.png", "format": "png"}]}}
+    p = parse_request(doc)
+    assert p.operations[0].type == "PHOTO_HSV"
+    assert p.operations[0].parameters["green_hue"] == 100
+    assert p.operations[0].parameters["blue_saturation"] == 20
+    # all families present
+    for fam in ("red", "orange", "yellow", "green", "cyan", "blue", "magenta"):
+        assert f"{fam}_hue" in PHOTO_HSV_PARAMS
+    # ranges
+    doc["project"]["operations"][0]["parameters"]["green_hue"] = 400
+    with pytest.raises(PhotoError):
+        parse_request(doc)
+    doc["project"]["operations"][0]["parameters"]["green_hue"] = 100
+    doc["project"]["operations"][0]["parameters"]["red_luminance"] = 101
+    with pytest.raises(PhotoError):
+        parse_request(doc)
+
+
+def test_photo_correction_tone_params():
+    doc = {"schema": SCHEMA,
+           "project": {"project_id": "c", "source": {"source_id": "s.jpg", "path": "s.jpg"},
+                       "operations": [{"op_id": "c", "type": "PHOTO_CORRECTION", "input": "source",
+                                        "parameters": {"tone_blacks": 0.2, "tone_shadows": 0.3,
+                                                       "tone_midtones": 0.6, "tone_highlights": 0.9,
+                                                       "tone_whites": 0.95}}],
+                       "outputs": [{"output_id": "o", "operation": "op:c", "path": "o.jpg", "format": "jpg"}]}}
+    p = parse_request(doc)
+    assert p.operations[0].type == "PHOTO_CORRECTION"
+    assert p.operations[0].parameters["tone_blacks"] == 0.2
+    assert p.operations[0].parameters["tone_highlights"] == 0.9
+    # out of range rejected
+    doc["project"]["operations"][0]["parameters"]["tone_blacks"] = 2.5
+    with pytest.raises(PhotoError):
+        parse_request(doc)

@@ -80,16 +80,17 @@ def hsv_to_rgb(h: float, s: float, v: float) -> Tuple[float, float, float]:
 
 
 def _tint(r: float, g: float, b: float, hue: float, saturation: float, luminance: float) -> Tuple[float, float, float]:
-    """Rotate a pixel's hue by `hue` and scale saturation by saturation/100 (a no-op when
-    saturation == 0), then lift/lower channels by luminance/100 * 0.6. All floats 0..1.
-    With a nonzero saturation the tint is made visible even on near-black corners: pixels
-    at v < 0.02 get v = 0.02, so a shadow wheel leaves a visible color trace (LRS-like)."""
+    """Rotate a pixel's hue by `hue`, scale saturation by saturation/100 (when nonzero), and
+    lift/lower channels by luminance/100 * 0.6. All floats 0..1. With a nonzero saturation the
+    tint is made visible even on near-black corners: pixels at v < 0.02 get v = 0.02, so a
+    shadow wheel leaves a visible color trace (LRS-like)."""
     h, s, v = rgb_to_hsv(r, g, b)
-    if saturation:
+    if hue or saturation:
         h = (h + hue) % 360.0
-        s = _clamp01(s * (1.0 + saturation / 100.0))
-        if v < 0.02:
-            v = 0.02
+        if saturation:
+            s = _clamp01(s * (1.0 + saturation / 100.0))
+            if v < 0.02:
+                v = 0.02
     out = hsv_to_rgb(h, s, v)
     lum = luminance or 0
     if lum:
@@ -160,6 +161,88 @@ def build_wheel_lut(wheels: Dict[str, Dict[str, Any]], blending: int = DEFAULT_B
     import hashlib
     digest = hashlib.sha256((header + body).encode("ascii")).hexdigest()[:16]
     p = Path(os.environ.get("PHOTO_GRADING_SCRATCH", os.getcwd())) / f"grading_wheels_{digest}.cube"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(header + body, encoding="ascii")
+    return str(p)
+
+
+def build_tone_curve_lut(blacks: float = 0.0, shadows: float = 0.15, midtones: float = 0.5,
+                         highlights: float = 0.85, whites: float = 1.0, size: int = LUT_SIZE) -> str:
+    """Piecewise-linear tone curve LUT on BT.709 luma with anchors
+    (L=0 -> blacks, L=0.15 -> shadows, L=0.5 -> midtones, L=0.85 -> highlights, L=1 -> whites).
+    Defaults are the identity anchors (blacks=0, shadows=0.15, midtones=0.5, highlights=0.85,
+    whites=1). LUT entry (r,g,b) maps to `in + (curve(L) - L)`, preserving the pixel's hue/saturation
+    ratios while changing the luminance curve (e.g. `tone_blacks > 0` anchors deep blacks without
+    crushing them, `tone_whites < 1` softens the highlight shoulder so bright areas roll off cleanly).
+    Writes the LUT; returns the path (the user's LUT is never modified)."""
+    anchors = [(0.0, blacks), (0.15, shadows), (0.5, midtones), (0.85, highlights), (1.0, whites)]
+
+    def curve(L: float) -> float:
+        if L <= 0.0:
+            return _clamp01(anchors[0][1])
+        if L >= 1.0:
+            return _clamp01(anchors[-1][1])
+        for (x0, y0), (x1, y1) in zip(anchors, anchors[1:]):
+            if x0 <= L <= x1:
+                t = (L - x0) / (x1 - x0) if x1 > x0 else 0.0
+                return _clamp01(y0 + (y1 - y0) * t)
+        return anchors[-1][1]
+
+    lines = ["TITLE PHOTO_TONE_CURVE", f"LUT_3D_SIZE {size}", ""]
+    n = size
+    for ix in range(n):
+        for iy in range(n):
+            for iz in range(n):
+                r, g, b = ix / (n - 1), iy / (n - 1), iz / (n - 1)
+                L = _luma(r, g, b)
+                target = curve(L)
+                delta = target - L
+                lines.append(f"{_clamp01(r + delta):.6f} {_clamp01(g + delta):.6f} {_clamp01(b + delta):.6f}")
+    header = "\n".join(lines[:3]) + "\n"
+    body = "\n".join(lines[3:]) + "\n"
+    import hashlib
+    digest = hashlib.sha256((header + body).encode("ascii")).hexdigest()[:16]
+    p = Path(os.environ.get("PHOTO_GRADING_SCRATCH", os.getcwd())) / f"tone_curve_{digest}.cube"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(header + body, encoding="ascii")
+    return str(p)
+
+
+# HSL per-color adjustments (transcript tip, user feedback #4): hue-family LUT tweaks.
+HSV_FAMILIES = ("red", "orange", "yellow", "green", "cyan", "blue", "magenta")
+_HSV_CENTER: Dict[str, float] = {"red": 0, "orange": 30, "yellow": 60, "green": 120,
+                                  "cyan": 170, "blue": 220, "magenta": 290}
+
+
+def _family(h: float) -> str:
+    return min(_HSV_CENTER, key=lambda fam: abs(((h - _HSV_CENTER[fam] + 180) % 360) - 180))
+
+
+def build_hsl_lut(tweaks: Dict[str, Dict[str, float]], size: int = LUT_SIZE) -> str:
+    """Generate a LUT from HSL per-color-family adjustments: for each LUT point, compute its
+    HSV hue-family (nearest of the 7 families by hue), and if that family has nonzero tweaks,
+    rotate the hue by `hue`, scale saturation by saturation/100, and lift/lower channels by
+    luminance/100 * 0.6 — the same `_tint` semantics as the wheels. Family names:
+    red, orange, yellow, green, cyan, blue, magenta. `tweaks[family]` = {hue, saturation, luminance}.
+    Identity when a family is absent or all tweaks are zero."""
+    tweaks = {fam: {k: float(tweaks.get(fam, {}).get(k) or 0) for k in ("hue", "saturation", "luminance")}
+              for fam in HSV_FAMILIES}
+    lines = ["TITLE PHOTO_HSL", f"LUT_3D_SIZE {size}", ""]
+    n = size
+    for ix in range(n):
+        for iy in range(n):
+            for iz in range(n):
+                r, g, b = ix / (n - 1), iy / (n - 1), iz / (n - 1)
+                fam = _family(rgb_to_hsv(r, g, b)[0])
+                t = tweaks[fam]
+                if any(t.values()):
+                    r, g, b = _tint(r, g, b, t["hue"], t["saturation"], t["luminance"])
+                lines.append(f"{_clamp01(r):.6f} {_clamp01(g):.6f} {_clamp01(b):.6f}")
+    header = "\n".join(lines[:3]) + "\n"
+    body = "\n".join(lines[3:]) + "\n"
+    import hashlib
+    digest = hashlib.sha256((header + body).encode("ascii")).hexdigest()[:16]
+    p = Path(os.environ.get("PHOTO_GRADING_SCRATCH", os.getcwd())) / f"hsl_{digest}.cube"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(header + body, encoding="ascii")
     return str(p)
