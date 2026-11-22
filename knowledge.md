@@ -490,3 +490,74 @@ Key tips/trick extraction (cross-applicable to photo color grading):
 - "Color doesn't just make your images look good - different colors feel different."
 - Practical advice for styles: "Colors can basically be divided into two groups... warm colors and
   cool colors... you can stick to warm or cool or use a combination".
+
+---
+
+## 19. Adobe Lightroom color grading tips (video review — Lightroom Color Grading panel)
+
+A Lightroom color grading tutorial (photo-specific tips). Extracted from the transcript:
+
+### Foundation first
+
+- **Establish a color foundation with the Basic panel** (temperature + tint) before touching the
+  Color Grading panel: "you should not even be touching that color grading panel until you first
+  set a foundation of color for your image... This is the first place I always recommend starting
+  out when you're editing color because it allows us to establish a general mood... And the white
+  balance adjustments creatively" — "if you shot an auto white balance, your camera probably did a
+  fantastic job of balancing that scene... go up here and select auto".
+
+### The Color Grading panel (the 3-way wheels)
+
+- Three circles: **Shadows** (shadow areas), **Midtones** (gray/middle of the photo), **Highlights**
+  (brightest areas). Each wheel: **hue** (the color), **saturation** (purity), **luminance**
+  (brightness of that color).
+- **Blacks don't light up**: "black is going to stay black" — "if we change the luminance values of
+  those shadows, we can bring those blacks up" (drag the luminance slider right — "adding gray into
+  that black, allowing it to be affected by that shadow adjustment").
+- **Blending**: smooths gradients (right = smooth, left = abrupt). **Balance**: favors highlights
+  (right) or shadows (left). Play with both.
+- **Global** wheel: add over the entire image ("if you really want to lean into a certain color").
+- **Bigger circles**: finer color selection.
+- **Sliders**: click a circle, drag the hue/saturation/luminance sliders for fine control.
+
+### Color combinations (the most common in Lightroom)
+
+- **Complimentary colors** — opposite on the wheel:
+  - **Blue & orange** — "a color combination that I use in so many of my images because it's
+    incredibly pleasing on the eye and it's also naturally occurring. So, a lot of our scenes
+    already have these complimentary colors built into them" — enhance: "add some blue into the
+    shadows... add some warm tones into those highlights" — the skill: the default wheels.
+  - **Green & red** — "while it's not entirely natural... it kind of gives your images a classic
+    Fujif film aesthetic".
+  - **Purple & green** — for night photos.
+- **Monochromatic** — one hue, different luminances ("going all in on one specific color").
+- **Analogous** — close colors on the wheel ("leaning into one color family").
+- Experiment: "there's no right or wrong way to color grade an image" — "every photo is a little bit
+  different... make a few different variations" via snapshots ("snapshot number two" — reset with
+  option, create variants, compare) — the skill: plan/doctor as checks; stable wheels.
+
+### Workflow tips
+
+- **Subtle changes**: "even the smallest changes to the colors in your images can completely change
+  the mood or the vibe of your image" — "the more detailed and specific you can get with editing
+  color, the better your color grades will ultimately be" (work back and forth with HSL + color
+  grading).
+- **Color fatigue**: "when you're staring at the same edit for 10, 20, 30 minutes... take a step
+  back... looking back at this image here that we just covered... it looks way off... it's a little
+  bit too green... I'd probably warm it up a little bit... I always recommend taking breaks so you
+  can come back to that image with a fresh set of eyes".
+- **Find your color profile**: "the more you play around... the more you're going to kind of find
+  what works for you and what works for your images" — "when you do find what works for you, I would
+  highly recommend incorporating those grades into presets of your own... they don't have to be
+  super strong, crazy presets" (the skill: the skill's strength dial = preset dial; wheels).
+- **Family style**: "you might vibe with a slightly different color combination" — "my Film Vibes
+  preset pack has color grading built in" — the skill: users can compose their wheels per photo.
+
+### Skill mapping notes
+
+- LRS wheels == skill wheels (hue, saturation, luminance per tonal range) — documented in
+  knowledge.md section 16 and docs/architecture.md.
+- Complimentary combos: Teal & Orange is the skill default (§16); green & red, purple & green are
+  also native combos (§19).
+- The "dial back" concept (§16) and LUTs — consistent with this video's "make a few different
+  variations" workflow.
