@@ -331,3 +331,97 @@ From Adobe + Fstoppers:
 ## 15. Source URLs (citable)
 
 Fstoppers, PHLEARN, Astronomy-news — primary sources used for research.
+---
+
+## 16. DaVinci Resolve color grading transcript tips (video review)
+
+A DaVinci Resolve color grading walkthrough ("Mitchell Mullins" style — a free professional
+workflow video; the video was transcribed and read; tips adapted to the photo skill).
+Key tips/trick extraction (DaVinci-specific, cross-applicable):
+
+### Two pillars: Corrections vs Look development
+
+- **Corrections** — "where is the image actually living how are we perceiving this image" —
+  exposure, balance, contrast; fix the camera/light problems. The photo skill: `PHOTO_CORRECTION`.
+- **Look development** — "how does this image feel how does it come across what is our intention
+  right how does this fit into the story" — color separation/hue — mood, depth. The photo skill:
+  `PHOTO_GRADING` + `PHOTO_LUT_APPLY`.
+- Order: **corrections first, then look** ("if we were to adjust our offset... you'd shift the
+  middle gray point and all of your other Corrections later down the line no longer stay the same").
+
+### Corrections (the biggest brush strokes — work photometrically, keep the camera's light levels)
+
+- **Exposure**: use the **HDR Global wheel** (lifts/lowers uniformly, anchored at the blacks) —
+  NOT the Offset wheel (it shifts the whole image and changes the middle gray point — destructive).
+  The skill: `exposure` in `PHOTO_CORRECTION`.
+- **Linear balance**: set gamma to "linear" (void of log space) and gain to where the image should
+  live. The skill: `white_balance_temperature`/`white_balance_tint`.
+- **Contrast**: "the biggest tip... contrast is the separation between black and white"; there's a
+  **pivot point** (middle gray ~336 — "the fulcrum of our contrast") — steer the eye: increase
+  contrast if "we want to make it feel more pleasing" — but only if "the question for us is does it
+  need to do". Avoid cranking contrast past where it clips. The skill: `contrast`.
+- "much of knowing what NOT to do" — don't overdo; "a lot of people just have too much contrast".
+
+### Split toning (the signature look — "color separation")
+
+- **Everything split toning happens in your curves**: anchor at middle gray (Da Vinci's
+  "Nano Middle Gray" — poke the curve to nail down the red/green/blue center), raise reds/greens in
+  the highlights (warm highlights), drop greens/blues in the shadows (cool shadows). That hue split
+  is the color separation — "we're separating our colors in the same way we did with our luminance
+  Channel and the contrast".
+- BUT: **I personally never do this — a lot of colorists rely on LUTs** ("we can rely on LUTs to give
+  us that split toning effect"). Film emulation LUTs (Kodak 2383, Fuji stocks, Tera, "the Legacy L
+  Collection") "are emulating film... finely-tuned to what our eyes find most preferable". LUTs
+  "look great they look awesome" and "you can dial it back... take the look too far — there's really
+  no rules". The skill: `PHOTO_LUT_APPLY` (+ `strength`), plus DIY wheels via `PHOTO_GRADING`.
+
+### Post-L granular tweaks (from the transcript, mapped to the skill)
+
+- **Saturation**: Da Vinci has three tools — `Saturation` (multiplier: "multiply some of the color
+  values" — blows out super-saturated elements), `Color Slice` ("deeper color values, more natural
+  — personally like the deeper color values"), `Color Boost`/vibrance (additive — "adding colors that
+  aren't there"). The skill: `saturation` in `PHOTO_CORRECTION` (like Color Slice).
+- **Matrix**: channel-strength tweaks per channel ("skin correction": push the skin toward magenta,
+  balance red/blue). The skill: `white_balance_temperature`/`white_balance_tint` in `PHOTO_CORRECTION`.
+- **HSV tweaks post-L**: "Hue vs Hue"/`Hue` + `Hue Saturation` — "adjust our hue... we can adjust
+  our blue saturation... similar to our Matrix". The skill: wheels.
+- **Log wheels post-L**: "drop some of the blacks to give us a little deeper of a feel" — log
+  wheels as finishing tweaks. The skill: wheels' `luminance`.
+- **HK — subtle luminance**: a post-L "hue/hue secondary" — humans perceive certain saturation
+  values as more luminous; tacks subtle luminance onto the colors (leaves out the moments of the
+  film look). The skill: the global `strength` dial ("dimming everything by N%").
+
+### Other tips
+
+- **Color space sandwich** (any camera → working space → display): input color space → Da Vinci wide
+  gamut → output color space (Rec 709 gamma 2.2 — "optimized for YouTube / macOS"). The skill:
+  `pix_fmt` measured at validation; `PHOTO_GRADING` works on the wide gamut.
+- **Teal & Orange** — "the classic teal and orange you know — push the highlights warmer, push the
+  highlights cooler" — the most recognized cinematic split (complementary). The skill: the default
+  look (shadows hue 190, highlights hue 40).
+- **Skin protection** ("much of the color difference is when you see the blood underneath the
+  skin"): hue-rotate skin back (magenta → yellow) and dial back saturation; "I don't mind where it's
+  at" nuance. The skill: `PHOTO_GRADING.balance`, wheels' saturation, `white_balance_tint`.
+- **Workflow philosophy**: "the biggest unlock is figuring out what each of those are and then
+  identifying what the most preferable approach is"; "do more with less"; "never be afraid to take
+  the look too far — there's really no rules"; "a lot of people are just doing too much — these
+  couple adjustments make the image look better than most things I've graded in my entire career";
+  "much of what makes a grade feel cinematic is subtlety: 'I'd say a lot of the difference is you
+  don't really want to see the effect'".
+- **Simplicity**: "the whole philosophy here is keep things as simple as possible"; end-of-grade
+  check: "whenever you think you're finished — try turning the look off and on — if 'before' looks
+  broken, you've overcooked it" (the skill: `photo-grading plan`/`doctor` as checks).
+- **Film stocks as inspiration**: "a lot of what we're trying to emulate in these split tones is the
+  characteristics of film... finely-tuned and tailored to what our eyes find most preferable"
+  (Kodak 2383, Fuji, Tera). The skill: wheels emulate the same splits.
+
+### Strength semantics (new, implemented in the skill)
+
+"Dial it back" — `PHOTO_GRADING.strength` (0..1): effective blend = `blending/100 * strength` — a
+"look dial" (strength 0.5 = half the grade, 0 = identity). `PHOTO_LUT_APPLY.strength` scales a user
+LUT toward identity (`out' = in + strength*(entry - in)`), so `strength 0.5` gives the same result
+as `PHOTO_GRADING.strength 0.5` on the same wheels (verified empirically).
+"Film grain" (transcript: "film grain this is really important... use it sparingly") — `grain`
+(0..50) → `noise=alls=N` (verified filter exists in ffmpeg 8.0.1).
+"Much of what makes a grade feel cinematic is subtlety: 'a lot of the difference is you don't
+really want to see the effect'".

@@ -26,9 +26,9 @@ photo-grading/request@1 (stdin)
 
 | Type | Parameters | Execution |
 |---|---|---|
-| `PHOTO_GRADING` | `shadows_*/midtones_*/highlights_*/global_*` (hue 0-360, saturation 0-100, luminance -100..100), `blending` (0-100, default 50), `balance` (-100..100, default 0) | A 3D `.cube` LUT built from the wheels (`buildlut.build_wheel_lut`), applied with `ffmpeg lut3d` |
-| `PHOTO_CORRECTION` | `white_balance_temperature` (2500-10000), `white_balance_tint` (-100..100), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `sharpness` (0..100) | `ffmpeg eq` + `hue` (white balance) + `unsharp` (sharpness) + a levels LUT (`buildlut.build_levels_lut`) via `lut3d` |
-| `PHOTO_LUT_APPLY` | `lut_path` (required, `.cube`) | `ffmpeg lut3d` on the caller's LUT |
+| `PHOTO_GRADING` | `shadows_*/midtones_*/highlights_*/global_*` (hue 0-360, saturation 0-100, luminance -100..100), `blending` (0-100, default 50), `balance` (-100..100, default 0), `strength` (0..1, default 1.0) | A 3D `.cube` LUT built from the wheels (`buildlut.build_wheel_lut`), applied with `ffmpeg lut3d` |
+| `PHOTO_CORRECTION` | `white_balance_temperature` (2500-10000), `white_balance_tint` (-100..100), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `sharpness` (0..100), `grain` (0..50, default 0) | `ffmpeg eq` + `hue` (white balance) + `unsharp` (sharpness) + a levels LUT (`buildlut.build_levels_lut`) via `lut3d`, + `noise=alls=N` (film grain, sparingly) |
+| `PHOTO_LUT_APPLY` | `lut_path` (required, `.cube`), `strength` (0..1, default 1.0) | `ffmpeg lut3d` on the caller's LUT (scaled toward identity via `buildlut.scale_lut_strength` when `strength < 1`) |
 | `WHITE_BALANCE` (alias) | temperature/tint only, resolved to `PHOTO_CORRECTION` at validation | same as `PHOTO_CORRECTION` |
 
 ### Wheel semantics (PHOTO_GRADING)
