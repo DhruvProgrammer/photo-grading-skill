@@ -561,3 +561,53 @@ A Lightroom color grading tutorial (photo-specific tips). Extracted from the tra
   also native combos (§19).
 - The "dial back" concept (§16) and LUTs — consistent with this video's "make a few different
   variations" workflow.
+
+---
+
+## 20. Lightroom color grading feedback (user audit of a "vibrant" grade)
+
+The user rated the vibrance-grade result 3/10 with their own fix recipe (audit of
+`graded.png` from the original photo). Key learnings (their own words):
+
+### What was broken (their analysis of the vibrance result)
+
+- **Over-saturation & clipping**: blue/green pushed past limits — foliage/water lose micro-detail
+  → flat neon blocks.
+- **Blue cast in midtones/shadows**: mountains cyan — flattens atmospheric depth.
+- **Blown highlights**: harsh clipping, no roll-off on rock/clouds.
+- **Poor color separation**: greens → radioactive yellow-green; muddy teal in shadow brush.
+
+### Their fix recipe
+
+1. **Pull back saturation and selectively tune greens/blues** (not global sliders) — their #1.
+2. **Fix white balance + split toning**: neutralize blue cast in midtones; keep cool in
+   shadows/atmosphere, warm sunlight on stone/dry edges — their #2.
+3. **Rebuild contrast with a tone curve**: anchor deep blacks without crushing; smooth the
+   highlight shoulder for clean roll-off — their #3.
+4. **Refine HLS (per-color)**: greens → forest/olive (hue + luminance down); blues → separate
+   sky/water; per-color hue/sat/lum — their #4.
+5. **Careful haze/dehaze + clarity** — over-sharpening/dehaze creates halos on edges — their #5.
+
+### Skill implementations of their fixes (added in this audit)
+
+1. **#1 "Pull back saturation first, selectively tune greens/blues"** — implemented as
+   **`PHOTO_HSV`** (per-hue-family tweaks — `green_hue/luminance`, `blue_hue/saturation/...` for
+   red/orange/yellow/green/cyan/blue/magenta — via `build_hsl_lut` + lut3d). Note: the skill's
+   `saturation` was too destructive for "vibrant" (saturation +100 → eq saturation scale 2.0);
+   for global vibrance, tune per-family saturation with PHOTO_HSV, or use contrast + tone curve.
+2. **#2 "White balance + split toning"** — skill: `PHOTO_CORRECTION.white_balance_temperature/tint`
+   (balance) + `PHOTO_GRADING` Teal & Orange wheels (complementary split).
+3. **#3 "Tone curve"** — new: `PHOTO_CORRECTION` gained `tone_blacks`/`tone_shadows`/`tone_midtones`/
+   `tone_highlights`/`tone_whites` (0..2; piecewise-linear on BT.709 luma anchors via
+   `build_tone_curve_lut` + lut3d; identity at defaults). Anchor deep blacks (tone_blacks > 0 lifts
+   blacks), smooth the highlight shoulder (tone_whights < 1 pulls the white anchor down, softening
+   the shoulder).
+4. **#4 "HSL per-color"** — new op: `PHOTO_HSV` — implemented as `build_hsl_lut` (per-hue-family
+   LUT tweaks via `_tint` semantics: hue rotation + saturation scale + channel shift).
+5. **#5 "Haze/dehaze + clarity"** — skill has `sharpness` (unsharp). No dehaze filter in ffmpeg — noted.
+
+### Self-review loop (their advice, applied)
+
+- "make a few different variations, compare, find the best" — the skill: `photo-grading plan`
+  (dry run) + `doctor` as checks; smoke tests of every op on real photos; the double-run pitfall
+  (don't re-run the skill twice when auditing).

@@ -41,6 +41,7 @@
       "operations": [
         "PHOTO_CORRECTION",
         "PHOTO_GRADING",
+        "PHOTO_HSV",
         "PHOTO_LUT_APPLY"
       ],
       "supports": {
@@ -130,6 +131,36 @@
           "min": 0,
           "max": 50,
           "default": 0
+        },
+        "tone_blacks": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.0
+        },
+        "tone_shadows": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.15
+        },
+        "tone_midtones": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.5
+        },
+        "tone_highlights": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 0.85
+        },
+        "tone_whites": {
+          "type": "number",
+          "min": 0.0,
+          "max": 2.0,
+          "default": 1.0
         }
       },
       "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
@@ -248,6 +279,169 @@
       "deterministic": true
     },
     {
+      "type": "PHOTO_HSV",
+      "description": "Per-hue-family HSL tweaks (red/orange/yellow/green/cyan/blue/magenta): hue/saturation/luminance shifts of the pixels in each family, executed via a generated LUT (buildlut.build_hsl_lut) with ffmpeg lut3d.",
+      "inputs": 1,
+      "parameters": {
+        "red_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the red family"
+        },
+        "red_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the red family (0 = untouched)"
+        },
+        "red_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the red family"
+        },
+        "orange_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the orange family"
+        },
+        "orange_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the orange family (0 = untouched)"
+        },
+        "orange_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the orange family"
+        },
+        "yellow_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the yellow family"
+        },
+        "yellow_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the yellow family (0 = untouched)"
+        },
+        "yellow_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the yellow family"
+        },
+        "green_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the green family"
+        },
+        "green_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the green family (0 = untouched)"
+        },
+        "green_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the green family"
+        },
+        "cyan_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the cyan family"
+        },
+        "cyan_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the cyan family (0 = untouched)"
+        },
+        "cyan_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the cyan family"
+        },
+        "blue_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the blue family"
+        },
+        "blue_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the blue family (0 = untouched)"
+        },
+        "blue_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the blue family"
+        },
+        "magenta_hue": {
+          "type": "int",
+          "min": 0,
+          "max": 360,
+          "default": 0,
+          "description": "hue shift of the magenta family"
+        },
+        "magenta_saturation": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "description": "saturation scale of the magenta family (0 = untouched)"
+        },
+        "magenta_luminance": {
+          "type": "int",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "description": "luminance shift of the magenta family"
+        }
+      },
+      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "required_capabilities": [
+        "ffmpeg",
+        "ffprobe",
+        "lut3d"
+      ],
+      "changes_duration": false,
+      "changes_resolution": false,
+      "deterministic": true
+    },
+    {
       "type": "PHOTO_LUT_APPLY",
       "description": "Apply a 3D .cube LUT with ffmpeg lut3d. LUT is data read from disk, never a filter string.",
       "inputs": 1,
@@ -291,7 +485,12 @@
         "whites",
         "saturation",
         "sharpness",
-        "grain"
+        "grain",
+        "tone_blacks",
+        "tone_shadows",
+        "tone_midtones",
+        "tone_highlights",
+        "tone_whites"
       ],
       "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
     },
@@ -309,7 +508,12 @@
         "whites",
         "saturation",
         "sharpness",
-        "grain"
+        "grain",
+        "tone_blacks",
+        "tone_shadows",
+        "tone_midtones",
+        "tone_highlights",
+        "tone_whites"
       ],
       "description": "WHITE_BALANCE alias: restricted to temperature/tint, resolved to PHOTO_CORRECTION at validation"
     }
