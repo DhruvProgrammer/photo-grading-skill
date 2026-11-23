@@ -14,14 +14,21 @@ LUT_SIZE = 64
 
 
 def _lut_values(path):
-    lines = open(path, encoding="ascii").read().splitlines()
-    return [tuple(map(float, l.split())) for l in lines[3:]]
+    vals = []
+    for line in open(path, encoding="ascii").read().splitlines():
+        try:
+            v = tuple(map(float, line.split()))
+        except ValueError:
+            continue
+        if len(v) == 3:
+            vals.append(v)
+    return vals
 
 
 def _identity_lut_points(n=LUT_SIZE):
-    # identity LUT: entry i == (r, g, b) of point i; file order is R-slowest/B-fastest:
-    # i = r*n^2 + g*n + b, r = i // (n*n), g = (i // n) % n, b = i % n
-    return [(i // (n * n) / (n - 1), (i // n) % n / (n - 1), i % n / (n - 1)) for i in range(n ** 3)]
+    # identity LUT: entry i == (r, g, b) of point i; .cube order (Adobe spec 1.0) is
+    # red-fastest/blue-slowest: i = b*n^2 + g*n + r, r = i % n, g = (i // n) % n, b = i // (n*n)
+    return [((i % n) / (n - 1), ((i // n) % n) / (n - 1), (i // (n * n)) / (n - 1)) for i in range(n ** 3)]
 
 
 def test_wheel_lut_strength_zero_is_identity(tmp_path, monkeypatch):

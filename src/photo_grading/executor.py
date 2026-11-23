@@ -26,7 +26,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import SKILL_ID, VERSION
-from .buildlut import HSV_FAMILIES, build_hsl_lut, build_levels_lut, build_tone_curve_lut, build_wheel_lut, scale_lut_strength
+from .buildlut import (HSV_FAMILIES, build_hsl_lut, build_levels_lut, build_tone_curve_lut,
+                       build_vibrance_lut, build_wb_lut, build_wheel_lut, scale_lut_strength)
 from .errors import PhotoError
 from .model import ColorOperation
 from .security import PathPolicy
@@ -35,6 +36,23 @@ WORK_DIR_NAME = ".photo-grading"
 GEOMETRY_TOLERANCE = 1          # px; photos do not change geometry: a 1px slack
 MAX_TOOL_TIMEOUT = 1200.0
 PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp")
+
+
+def _pipeline_fingerprint() -> str:
+    """Hash of the modules that build filter chains and LUTs. The reuse identity includes it,
+    so upgrading the skill invalidates cached intermediates (otherwise a cache produced by an
+    older, buggy pipeline silently survives a fix)."""
+    h = hashlib.sha256()
+    for name in ("buildlut.py", "executor.py", "model.py"):
+        p = Path(__file__).with_name(name)
+        try:
+            h.update(p.read_bytes())
+        except OSError:
+            h.update(name.encode("utf-8"))
+    return h.hexdigest()[:16]
+
+
+PIPELINE_FINGERPRINT = _pipeline_fingerprint()
 # (measurement keys we record are "yavg", "uavg", "vavg" — parsed from showinfo's `mean:[Y U V]`)
 
 
@@ -57,6 +75,13 @@ def _lut_arg(path: str) -> str:
     except ValueError:
         pass
     return p.replace("\\", "/").replace(":", "\\:")
+
+
+def _stderr_tail(p: subprocess.CompletedProcess, lines: int = 8) -> str:
+    """The last lines of a tool's stderr: ffmpeg prints its banner first, so the first 300
+    characters are always useless (the old error message hid the real cause)."""
+    text = (p.stderr or b"").decode("utf-8", "replace").strip().splitlines()
+    return "\n".join(text[-lines:])[:800]
 
 
 def _run(argv: List[str], timeout: float, label: str = "") -> subprocess.CompletedProcess:
@@ -113,7 +138,12 @@ class Executor:
         m = re.search(r"mean:\[([0-9.\-]+) ([0-9.\-]+) ([0-9.\-]+)\]", out)
         if not m:
             return {}
-        return {"yavg": float(m.group(1)), "uavg": float(m.group(2)), "vavg": float(m.group(3))}
+        vals = [float(m.group(1)), float(m.group(2)), float(m.group(3))]
+        # signalstats reports 16-bit planes as 0..65535; normalize to the 8-bit scale so
+        # before/after measurements stay comparable once intermediates are 16-bit PNG.
+        if any(v > 255.0 for v in vals):
+            vals = [v / 257.0 for v in vals]
+        return {"yavg": round(vals[0], 1), "uavg": round(vals[1], 1), "vavg": round(vals[2], 1)}
 
     # ---- validation ----
     def _check_geometry_unchanged(self, src_probe: Dict[str, Any], dst: Path, timeout: float) -> Dict[str, Any]:
@@ -140,16 +170,14 @@ class Executor:
     def _photo_correction_filter(self, op: ColorOperation) -> List[str]:
         p = op.parameters
         filters: List[str] = []
-        # white balance: temperature -> hue rotation, tint -> saturation multiplier (hue filter)
+        # white balance: per-channel gains (temperature warms/cools R vs B, tint shifts G),
+        # normalized so no gain exceeds 1 (no highlight clipping).
         temp = p.get("white_balance_temperature")
         tint = p.get("white_balance_tint")
         if temp is not None or tint is not None:
-            t = float(temp) if temp is not None else 6500.0
-            tt = float(tint) if tint is not None else 0.0
-            h = round((6500.0 - t) * 0.45)          # neutral 6500 -> 0; hot -> +; cool -> -
-            s = 1.0 - tt / 100.0                    # tint +100 -> 0 (desaturate green/magenta)
-            h = max(-180, min(180, h))
-            filters.append(f"hue=h={h:.4g}:s={s:.4g}")
+            lut = build_wb_lut(float(temp) if temp is not None else 6500.0,
+                               float(tint) if tint is not None else 0.0)
+            filters.append(f"lut3d=file={_lut_arg(lut)}")
         # base eq
         eq_parts: List[str] = []
         exposure = p.get("exposure")
@@ -163,6 +191,10 @@ class Executor:
             eq_parts.append(f"saturation={max(0.0, min(2.0, 1.0 + float(saturation) / 100.0)):.4g}")
         if eq_parts:
             filters.append("eq=" + ":".join(eq_parts))
+        # vibrance: saturation weighted toward under-saturated pixels (never clips a channel)
+        vibrance = p.get("vibrance")
+        if vibrance:
+            filters.append(f"lut3d=file={_lut_arg(build_vibrance_lut(float(vibrance)))}")
         # levels LUT (shadows/highlights/blacks/whites)
         levels = {k: p.get(k, 0.0) for k in ("shadows", "highlights", "blacks", "whites")}
         if any(v for v in levels.values()):
@@ -171,7 +203,15 @@ class Executor:
         # sharpness
         sharpness = p.get("sharpness")
         if sharpness:
-            filters.append(f"unsharp=la.size=3:amount={min(1.0, float(sharpness) / 100.0):.4g}")
+            # unsharp options are lx/ly/la (luma size + amount); `la.size` is not an option and
+            # made every sharpened request fail (found in the 1.5/10 audit).
+            filters.append(f"unsharp=lx=3:ly=3:la={min(1.0, float(sharpness) / 100.0):.4g}")
+        # clarity: local midtone contrast via Contrast Adaptive Sharpen (no edge halos, unlike
+        # a fixed unsharp kernel). cas strength is 0..1; cap at 0.8 so the top of the slider
+        # stays photographic instead of crunchy.
+        clarity = p.get("clarity")
+        if clarity:
+            filters.append(f"cas=strength={min(0.8, float(clarity) / 100.0):.4g}")
         # film grain (transcript: "film grain this is really important... use it sparingly")
         grain = p.get("grain")
         if grain:
@@ -217,12 +257,16 @@ class Executor:
         argv = [str(self.ffmpeg), "-nostdin", "-y", "-i", str(src)]
         if chain:
             argv += ["-vf", ",".join(chain)]
+        if dst.suffix.lower() in (".png", ".tif", ".tiff"):
+            # 16-bit intermediate/output: heavy hue/curve pushes on an 8-bit pipeline posterize
+            # (audit 1.5/10: "work in higher bit depth before grading").
+            argv += ["-pix_fmt", "rgb48be"]
         argv += [str(dst)]
         src_probe = self.probe(src)
         src_stats = self.signalstats(src)
         p = _run(argv, timeout, f"ffmpeg {op.type}")
         if p.returncode != 0:
-            raise PhotoError("TOOL_ERROR", f"ffmpeg failed for {op.type}: {p.stderr.decode('utf-8', 'replace').strip()[:300]}",
+            raise PhotoError("TOOL_ERROR", f"ffmpeg failed for {op.type}: {_stderr_tail(p)}",
                              {"op_id": op.op_id, "type": op.type}, retryable=True)
         if not dst.is_file() or dst.stat().st_size == 0:
             raise PhotoError("OUTPUT_ERROR", f"ffmpeg wrote no output for {op.op_id}", {"path": str(dst)})
@@ -242,10 +286,30 @@ class Executor:
                                             "pix_fmt": dst_probe["pix_fmt"], "codec_name": dst_probe["codec_name"]}},
                 **lut_info}
 
+    def _encode_output(self, src: Path, dst: Path, fmt: str, timeout: float) -> None:
+        """Encode the final 16-bit PNG artifact into the requested output format exactly once
+        (instead of writing every intermediate in the source format, which re-compresses JPEGs
+        once per operation). PNG/TIFF keep 16 bits; JPEG/WebP use high quality."""
+        argv = [str(self.ffmpeg), "-nostdin", "-y", "-i", str(src)]
+        if fmt in ("jpg", "jpeg"):
+            argv += ["-q:v", "2"]
+        elif fmt == "webp":
+            argv += ["-quality", "95"]
+        elif fmt in ("png", "tif", "tiff"):
+            argv += ["-pix_fmt", "rgb48be"]
+        argv += [str(dst)]
+        p = _run(argv, timeout, f"ffmpeg encode {fmt}")
+        if p.returncode != 0:
+            raise PhotoError("TOOL_ERROR", f"ffmpeg failed to encode the output as {fmt}: "
+                             f"{_stderr_tail(p)}", {"path": str(dst)}, retryable=True)
+
     # ---- reuse ----
-    def _identity(self, op: ColorOperation, src_probe: Dict[str, Any], tool_versions: Dict[str, str]) -> str:
-        canon = {"type": op.type, "parameters": op.parameters, "input_identity": src_probe["sha256"],
-                 "tool_versions": tool_versions}
+    def _identity(self, op: ColorOperation, input_hash: str, tool_versions: Dict[str, str]) -> str:
+        # The identity must hash the *actual* input of this operation, not the original source:
+        # otherwise changing an upstream op would silently reuse a stale downstream artifact.
+        canon = {"type": op.type, "parameters": op.parameters, "input_identity": input_hash,
+                 "tool_versions": tool_versions, "skill_version": VERSION,
+                 "pipeline": PIPELINE_FINGERPRINT}
         return hashlib.sha256(json.dumps(canon, sort_keys=True, default=str).encode()).hexdigest()
 
     def _check_reuse(self, dst: Path, identity: str, src: Path, op: ColorOperation) -> Optional[Dict[str, Any]]:
@@ -277,12 +341,19 @@ class Executor:
         tool_versions = {"ffmpeg": subprocess.run([str(self.ffmpeg), "-version"], capture_output=True).stdout.decode("utf-8", "replace").split("\n")[0][:60]}
         results_by_op: Dict[str, Dict[str, Any]] = {}
         artifacts: Dict[str, Path] = {"source": src}
-        current: Path = src
+        hashes: Dict[str, str] = {"source": src_probe["sha256"]}
         for op in project.operations:
-            # intermediates keep the source photo's extension: ffmpeg infers the output format
-            # from the name, and a photo never changes container in this skill
-            dst = self.policy.work_dir() / f"{op.op_id}{src.suffix}"
-            identity = self._identity(op, src_probe, tool_versions)
+            # Honor the declared input reference: operations form a DAG, not one linear chain.
+            # (The first implementation ignored op.input and fed each op the previous op's
+            # output, so a second branch from `source` was silently graded on top of the first
+            # branch -- the root cause of the false-color candidates in the 1.5/10 audit.)
+            current = artifacts[op.input]
+            current_hash = hashes[op.input]
+            # Intermediates are always lossless 16-bit PNG: a multi-op chain must never accumulate
+            # JPEG re-compression or 8-bit rounding between steps. The requested output format is
+            # encoded exactly once at the end (see _encode_output).
+            dst = self.policy.work_dir() / f"{op.op_id}.png"
+            identity = self._identity(op, current_hash, tool_versions)
             hit = None
             if reuse:
                 hit = self._check_reuse(dst, identity, src, op)
@@ -294,18 +365,19 @@ class Executor:
                 self._write_stamp(dst, identity, result)
             results_by_op[op.op_id] = {"operation_id": op.op_id, "type": op.type, **result, "reused": hit is not None}
             artifacts[f"op:{op.op_id}"] = dst   # keyed by REF so an op literally named "source" can't clobber it
-            current = dst
+            hashes[f"op:{op.op_id}"] = result["output_hash"]
         outputs: List[Dict[str, Any]] = []
         for o in project.outputs:
             ref = o.operation                   # "source" | "op:<id>"
             artifact = artifacts[ref]
             dst = self.policy.check_output(o.path, [])
+            dst.parent.mkdir(parents=True, exist_ok=True)
             if artifact != dst and artifact.is_file():
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                import shutil
-                shutil.copy2(artifact, dst)
-            else:
-                dst.parent.mkdir(parents=True, exist_ok=True)
+                if artifact.suffix.lower() == dst.suffix.lower() and dst.suffix.lower() in (".png", ".tif", ".tiff"):
+                    import shutil
+                    shutil.copy2(artifact, dst)          # same lossless container: keep 16 bits
+                else:
+                    self._encode_output(artifact, dst, o.format, project.options["timeout"])
             out_record: Dict[str, Any] = {"output_id": o.output_id, "path": str(dst), "status": "completed",
                                           "sha256": self.probe(dst)["sha256"]}
             result = results_by_op.get(ref.split(":", 1)[1]) if ref != "source" else None

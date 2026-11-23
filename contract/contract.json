@@ -63,7 +63,7 @@
   "operations": [
     {
       "type": "PHOTO_CORRECTION",
-      "description": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), saturation (-100..100), sharpness (0..100). Executed via ffmpeg eq/hue/unsharp plus a generated LUT for the tonal bands.",
+      "description": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), saturation (-100..100), vibrance (-100..100, weighted toward muted pixels), sharpness (0..100), clarity (0..100, local contrast), grain (0..50), and tone-curve anchors. Executed via ffmpeg eq/unsharp/cas/noise plus generated LUTs for white balance and tonal bands.",
       "inputs": 1,
       "parameters": {
         "white_balance_temperature": {
@@ -120,11 +120,23 @@
           "max": 100.0,
           "default": 0.0
         },
+        "vibrance": {
+          "type": "number",
+          "min": -100.0,
+          "max": 100.0,
+          "default": 0.0
+        },
         "sharpness": {
           "type": "int",
           "min": 0,
           "max": 100,
           "default": 25
+        },
+        "clarity": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
+          "default": 0
         },
         "grain": {
           "type": "int",
@@ -163,10 +175,15 @@
           "default": 1.0
         }
       },
-      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "tool": "ffmpeg/lut3d|eq|unsharp|cas|signalstats",
       "required_capabilities": [
         "ffmpeg",
-        "ffprobe"
+        "ffprobe",
+        "eq",
+        "lut3d",
+        "unsharp",
+        "cas",
+        "signalstats"
       ],
       "changes_duration": false,
       "changes_resolution": false,
@@ -268,7 +285,7 @@
           "default": 1.0
         }
       },
-      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "tool": "ffmpeg/lut3d|eq|unsharp|cas|signalstats",
       "required_capabilities": [
         "ffmpeg",
         "ffprobe",
@@ -285,17 +302,17 @@
       "parameters": {
         "red_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the red family"
+          "description": "hue shift of the red family (slider: -100..100 maps to -40..40 degrees)"
         },
         "red_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the red family (0 = untouched)"
+          "description": "saturation shift of the red family (-100..100)"
         },
         "red_luminance": {
           "type": "int",
@@ -306,17 +323,17 @@
         },
         "orange_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the orange family"
+          "description": "hue shift of the orange family (slider: -100..100 maps to -40..40 degrees)"
         },
         "orange_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the orange family (0 = untouched)"
+          "description": "saturation shift of the orange family (-100..100)"
         },
         "orange_luminance": {
           "type": "int",
@@ -327,17 +344,17 @@
         },
         "yellow_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the yellow family"
+          "description": "hue shift of the yellow family (slider: -100..100 maps to -40..40 degrees)"
         },
         "yellow_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the yellow family (0 = untouched)"
+          "description": "saturation shift of the yellow family (-100..100)"
         },
         "yellow_luminance": {
           "type": "int",
@@ -348,17 +365,17 @@
         },
         "green_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the green family"
+          "description": "hue shift of the green family (slider: -100..100 maps to -40..40 degrees)"
         },
         "green_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the green family (0 = untouched)"
+          "description": "saturation shift of the green family (-100..100)"
         },
         "green_luminance": {
           "type": "int",
@@ -369,17 +386,17 @@
         },
         "cyan_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the cyan family"
+          "description": "hue shift of the cyan family (slider: -100..100 maps to -40..40 degrees)"
         },
         "cyan_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the cyan family (0 = untouched)"
+          "description": "saturation shift of the cyan family (-100..100)"
         },
         "cyan_luminance": {
           "type": "int",
@@ -390,17 +407,17 @@
         },
         "blue_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the blue family"
+          "description": "hue shift of the blue family (slider: -100..100 maps to -40..40 degrees)"
         },
         "blue_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the blue family (0 = untouched)"
+          "description": "saturation shift of the blue family (-100..100)"
         },
         "blue_luminance": {
           "type": "int",
@@ -411,17 +428,17 @@
         },
         "magenta_hue": {
           "type": "int",
-          "min": 0,
-          "max": 360,
+          "min": -100,
+          "max": 100,
           "default": 0,
-          "description": "hue shift of the magenta family"
+          "description": "hue shift of the magenta family (slider: -100..100 maps to -40..40 degrees)"
         },
         "magenta_saturation": {
           "type": "int",
-          "min": 0,
+          "min": -100,
           "max": 100,
           "default": 0,
-          "description": "saturation scale of the magenta family (0 = untouched)"
+          "description": "saturation shift of the magenta family (-100..100)"
         },
         "magenta_luminance": {
           "type": "int",
@@ -431,7 +448,7 @@
           "description": "luminance shift of the magenta family"
         }
       },
-      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "tool": "ffmpeg/lut3d|eq|unsharp|cas|signalstats",
       "required_capabilities": [
         "ffmpeg",
         "ffprobe",
@@ -459,7 +476,7 @@
           "description": "Scale the LUT toward identity: 1 = full application, 0 = none"
         }
       },
-      "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
+      "tool": "ffmpeg/lut3d|eq|unsharp|cas|signalstats",
       "required_capabilities": [
         "ffmpeg",
         "ffprobe",
@@ -484,7 +501,9 @@
         "blacks",
         "whites",
         "saturation",
+        "vibrance",
         "sharpness",
+        "clarity",
         "grain",
         "tone_blacks",
         "tone_shadows",
@@ -507,7 +526,9 @@
         "blacks",
         "whites",
         "saturation",
+        "vibrance",
         "sharpness",
+        "clarity",
         "grain",
         "tone_blacks",
         "tone_shadows",
@@ -648,7 +669,7 @@
         "operations": [
           {
             "op_id": "id",
-            "type": "PHOTO_GRADING|PHOTO_CORRECTION|PHOTO_LUT_APPLY",
+            "type": "PHOTO_GRADING|PHOTO_CORRECTION|PHOTO_HSV|PHOTO_LUT_APPLY",
             "input": "source|op:<id>",
             "parameters": {}
           }

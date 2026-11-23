@@ -33,8 +33,9 @@ _OPERATION_DESCRIPTIONS = {
                      "cinematic look is teal shadows + orange highlights.",
     "PHOTO_CORRECTION": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), "
                         "exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), "
-                        "saturation (-100..100), sharpness (0..100). Executed via ffmpeg eq/hue/unsharp plus a "
-                        "generated LUT for the tonal bands.",
+                        "saturation (-100..100), vibrance (-100..100, weighted toward muted pixels), sharpness "
+                        "(0..100), clarity (0..100, local contrast), grain (0..50), and tone-curve anchors. Executed "
+                        "via ffmpeg eq/unsharp/cas/noise plus generated LUTs for white balance and tonal bands.",
     "PHOTO_LUT_APPLY": "Apply a 3D .cube LUT with ffmpeg lut3d. LUT is data read from disk, never a filter string.",
     "PHOTO_HSV": "Per-hue-family HSL tweaks (red/orange/yellow/green/cyan/blue/magenta): hue/saturation/"
                  "luminance shifts of the pixels in each family, executed via a generated LUT "
@@ -51,8 +52,10 @@ def operation_specs() -> List[Dict[str, Any]]:
                                                    "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0,
                                                                 "description": "Scale the LUT toward identity: 1 = full application, 0 = none"}}, "PHOTO_HSV": PHOTO_HSV_PARAMS}[typ]
         out.append({"type": typ, "description": _OPERATION_DESCRIPTIONS[typ],
-                    "inputs": 1, "parameters": _param_specs(params), "tool": "ffmpeg/lut3d|eq|hue|unsharp|signalstats",
-                    "required_capabilities": ["ffmpeg", "ffprobe", *(["lut3d"] if typ in ("PHOTO_GRADING", "PHOTO_LUT_APPLY", "PHOTO_HSV") else [])],
+                    "inputs": 1, "parameters": _param_specs(params), "tool": "ffmpeg/lut3d|eq|unsharp|cas|signalstats",
+                    "required_capabilities": ["ffmpeg", "ffprobe",
+                                              *(["lut3d"] if typ in ("PHOTO_GRADING", "PHOTO_LUT_APPLY", "PHOTO_HSV") else []),
+                                              *(["eq", "lut3d", "unsharp", "cas", "signalstats"] if typ == "PHOTO_CORRECTION" else [])],
                     "changes_duration": False, "changes_resolution": False, "deterministic": True})
     return out
 
@@ -110,7 +113,7 @@ def skill_contract() -> Dict[str, Any]:
                     "reference_pattern": REF_RE.pattern, "forbidden_fields": sorted(FORBIDDEN_KEYS),
                     "shape": {"schema": f"{SKILL_ID}/request@{REQUEST_SCHEMA_VERSION}",
                               "project": {"project_id": "id", "source": {"source_id": "id", "path": "file"},
-                                          "operations": [{"op_id": "id", "type": "PHOTO_GRADING|PHOTO_CORRECTION|PHOTO_LUT_APPLY",
+                                          "operations": [{"op_id": "id", "type": "PHOTO_GRADING|PHOTO_CORRECTION|PHOTO_HSV|PHOTO_LUT_APPLY",
                                                           "input": "source|op:<id>", "parameters": {}}],
                                           "outputs": [{"output_id": "id", "operation": "source|op:<id>", "path": "file",
                                                        "format": "jpg|jpeg|png|tiff|webp|bmp"}]},

@@ -11,6 +11,9 @@ Operations:
   LUT + ffmpeg eq/hue/unsharp.
 - PHOTO_WHITE_BALANCE  alias of PHOTO_CORRECTION restricted to temperature/tint (resolved to
   PHOTO_CORRECTION at validation, like the video skill's WHITE_BALANCE).
+- PHOTO_HSV  per-hue-family HSL tweaks (red/orange/yellow/green/cyan/blue/magenta), each
+  hue/saturation/luminance -100..100; executed via a generated LUT (soft family weights, so
+  neighbouring colors blend instead of posterizing).
 - PHOTO_LUT_APPLY  apply a 3D .cube LUT with ffmpeg lut3d; requires lut_path.
 
 The model is a pure structural/semantic validator: it never touches the file system (that is
@@ -122,7 +125,15 @@ PHOTO_CORRECTION_PARAMS: Dict[str, Dict[str, Any]] = {
     "blacks": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "whites": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "saturation": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
+    # Vibrance (user feedback: "keep saturation controlled across all channels"): a saturation
+    # boost weighted toward under-saturated pixels, so already-vivid foliage/sky barely move and
+    # neutral pixels stay neutral. Prefer it over `saturation` for "make it vibrant".
+    "vibrance": {"type": "number", "min": -100.0, "max": 100.0, "default": 0.0},
     "sharpness": {"type": "int", "min": 0, "max": 100, "default": 25},
+    # Clarity: local midtone contrast (ffmpeg `cas`, Contrast Adaptive Sharpen). Unlike
+    # `sharpness` (a fixed unsharp kernel), cas boosts local contrast without halos around
+    # edges, which is what "clarity" means in a photo editor. 0 = off.
+    "clarity": {"type": "int", "min": 0, "max": 100, "default": 0},
     "grain": {"type": "int", "min": 0, "max": 50, "default": 0},
     # Tone curve anchors (user feedback #3: "Rebuild contrast with a tone curve: anchor deep
     # blacks..., smooth the highlight shoulder"): piecewise-linear on BT.709 luma, anchors at
@@ -140,10 +151,10 @@ def _hsv_fam_params() -> Dict[str, Dict[str, Any]]:
     """PHOTO_HSV: per-color-family HSL tweaks (user feedback #4: HSL greens/blues/reds...)."""
     out: Dict[str, Dict[str, Any]] = {}
     for fam in ("red", "orange", "yellow", "green", "cyan", "blue", "magenta"):
-        out[f"{fam}_hue"] = {"type": "int", "min": 0, "max": 360, "default": 0,
-                              "description": f"hue shift of the {fam} family"}
-        out[f"{fam}_saturation"] = {"type": "int", "min": 0, "max": 100, "default": 0,
-                                    "description": f"saturation scale of the {fam} family (0 = untouched)"}
+        out[f"{fam}_hue"] = {"type": "int", "min": -100, "max": 100, "default": 0,
+                              "description": f"hue shift of the {fam} family (slider: -100..100 maps to -40..40 degrees)"}
+        out[f"{fam}_saturation"] = {"type": "int", "min": -100, "max": 100, "default": 0,
+                                    "description": f"saturation shift of the {fam} family (-100..100)"}
         out[f"{fam}_luminance"] = {"type": "int", "min": -100, "max": 100, "default": 0,
                                    "description": f"luminance shift of the {fam} family"}
     return out

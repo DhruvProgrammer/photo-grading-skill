@@ -16,7 +16,7 @@ from .model import OPERATION_TYPES
 from .security import PathPolicy
 
 DOCTOR_SCHEMA_ID = f"{SKILL_ID}/doctor@{DOCTOR_SCHEMA_VERSION}"
-PHOTO_FILTERS = ("lut3d", "eq", "hue", "unsharp", "signalstats", "showinfo", "lut", "vignette", "curves", "colorlevels")
+PHOTO_FILTERS = ("lut3d", "eq", "hue", "unsharp", "cas", "signalstats", "showinfo", "lut", "vignette", "curves", "colorlevels")
 
 
 def _version(binpath: Optional[str]) -> Optional[str]:
@@ -80,8 +80,12 @@ def doctor_report(workspace: Optional[str] = None) -> Dict[str, Any]:
         if typ == "PHOTO_GRADING":
             need += ["lut3d"]
         elif typ == "PHOTO_CORRECTION":
-            need += ["eq", "hue", "signalstats", "unsharp", "showinfo"]
+            # white balance, vibrance, levels and the tone curve are generated LUTs; sharpness
+            # is unsharp, clarity is cas, grain is noise, exposure/contrast/saturation are eq.
+            need += ["eq", "lut3d", "unsharp", "cas", "signalstats", "showinfo"]
         elif typ == "PHOTO_LUT_APPLY":
+            need += ["lut3d"]
+        elif typ == "PHOTO_HSV":
             need += ["lut3d"]
         ok = all(_status(c) in ("ok", "supported") for c in need)
         st = "supported" if ok else ("unknown" if any(_status(c) == "unknown" for c in need) else "unsupported")

@@ -8,6 +8,7 @@ stderr: diagnostics only. Exit code: 0 on success, otherwise errors.EXIT_CODES[e
   photo-grading validate - --json          validate a request document, run nothing
   photo-grading plan - --json              dry run: plan without writing media
   photo-grading run - --json [--dry-run]   execute a request document
+  photo-grading inspect IMAGE --json       objective pixel statistics (clipping, saturation, cast)
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from .doctor import doctor_report
 from .errors import EXIT_CODES, PhotoError
 from .executor import Executor
 from .model import parse_request
+from .quality import inspect_image
 from .security import PathPolicy
 
 
@@ -49,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("doctor", help="diagnose the environment against the contract")
     d.add_argument("--workspace")
     _add_common(d)
+    i = sub.add_parser("inspect", help="objective pixel statistics of a photo (clipping, saturation, cast)")
+    i.add_argument("image")
+    _add_common(i)
     v = sub.add_parser("validate", help="validate a request document; runs nothing, reads no media")
     v.add_argument("request")
     _add_common(v)
@@ -110,6 +115,15 @@ def _human(doc: dict) -> None:
             print(f"  {name:14} {o['status']:10} {o['required']}" + (f"  missing: {o['missing']}" if o.get("missing") else ""))
         for p in doc["problems"]:
             print(f"problem: {p}")
+    elif "metrics" in doc:
+        m = doc["metrics"]
+        print(f"{m['width']}x{m['height']} {m['pix_fmt']}  luma mean {m['mean_luma']:.1f} "
+              f"p05 {m['luma_p05']:.1f} p95 {m['luma_p95']:.1f}  "
+              f"clip hi {m['highlight_clip_pct']:.2f}% lo {m['shadow_clip_pct']:.2f}%  "
+              f"sat mean {m['mean_saturation']:.1f} p95 {m['p95_saturation']:.1f}  "
+              f"neon {m['neon_pct']:.2f}%  neutral cast R-G {m['neutral_cast_r_minus_g']:+.1f} B-G {m['neutral_cast_b_minus_g']:+.1f}")
+        for w in doc.get("warnings", []):
+            print(f"warning: {w}")
     elif "operations" in doc:
         print(f"{doc['skill_id']} {doc['version']}: " + ", ".join(o["type"] for o in doc["operations"]))
 
@@ -137,6 +151,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         doc = doctor_report(args.workspace)
         _emit(doc, as_json)
         return 0 if doc["status"] != "fail" else 1
+    if args.cmd == "inspect":
+        try:
+            doc = inspect_image(args.image)
+        except PhotoError as e:
+            doc = _error_document(e, False)
+        _emit(doc, as_json)
+        if doc.get("ok"):
+            return 0
+        return EXIT_CODES.get((doc.get("error") or {}).get("code", "INTERNAL_ERROR"), EXIT_CODES["INTERNAL_ERROR"])
     dry_run = args.cmd == "plan" or bool(getattr(args, "dry_run", False))
     try:
         document = _read_document(args.request)
@@ -149,6 +172,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                                   "operations": [o.type for o in project.operations]}}, "warnings": []}
         else:
             project = parse_request(document)
+            if getattr(args, "no_reuse", False):
+                # --no-reuse was parsed but never applied: it must disable intermediate reuse.
+                project.options["reuse_intermediates"] = False
             policy = PathPolicy(args.workspace, overwrite=project.options["overwrite"])
             executor = Executor(policy, timeout=project.options["timeout"])
             install_cancel_handlers(executor)

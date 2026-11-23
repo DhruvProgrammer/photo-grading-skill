@@ -38,3 +38,57 @@ def test_executor_hsv_chain_all_families(tmp_path, monkeypatch):
     op = ColorOperation("h", "PHOTO_HSV", "source", params)
     chain = Executor.build_chain(_executor(), op, tmp_path)
     assert chain, chain
+
+
+def test_run_project_honors_each_operations_declared_input(tmp_path):
+    """Regression: operations form a DAG. The executor used to feed every op the previous
+    op's output and ignore op.input, so a second branch from `source` was graded on top of
+    the first branch (root cause of the false-color candidates in the 1.5/10 audit)."""
+    import shutil
+    from pathlib import Path
+
+    from photo_grading.model import parse_request
+    from photo_grading.security import PathPolicy
+
+    src = tmp_path / "src.png"
+    src.write_bytes(b"src")
+    doc = {"schema": "photo-grading/request@1",
+           "project": {"project_id": "branches", "source": {"source_id": "s", "path": str(src)},
+                       "operations": [
+                           {"op_id": "a", "type": "PHOTO_CORRECTION", "input": "source",
+                            "parameters": {"exposure": 0.1}},
+                           {"op_id": "b", "type": "PHOTO_CORRECTION", "input": "source",
+                            "parameters": {"exposure": 0.2}},
+                           {"op_id": "c", "type": "PHOTO_CORRECTION", "input": "op:a",
+                            "parameters": {"contrast": 10}}],
+                       "outputs": [{"output_id": "oa", "operation": "op:a", "path": "oa.png", "format": "png"},
+                                   {"output_id": "ob", "operation": "op:b", "path": "ob.png", "format": "png"}]}}
+    project = parse_request(doc)
+
+    ex = object.__new__(Executor)
+    ex.policy = PathPolicy(str(tmp_path))
+    ex.ffmpeg = Path(shutil.which("ffmpeg"))
+    ex.ffprobe = Path(shutil.which("ffprobe"))
+    ex._cancel = None
+    calls = []
+
+    def fake_probe(path):
+        p = Path(path)
+        return {"path": str(p), "width": 2, "height": 2, "pix_fmt": "rgb24", "codec_name": "png",
+                "size": p.stat().st_size, "sha256": "hash-" + p.stem, "n_streams": 1}
+
+    def fake_apply(src_path, dst, op, timeout):
+        calls.append((op.op_id, Path(src_path).name))
+        Path(dst).parent.mkdir(parents=True, exist_ok=True)
+        Path(dst).write_bytes(b"x")
+        return {"output_hash": "hash-" + Path(dst).stem, "operation_id": op.op_id, "type": op.type}
+
+    ex.probe = fake_probe
+    ex._apply = fake_apply
+    ex._check_reuse = lambda *a, **k: None
+    ex._write_stamp = lambda *a, **k: None
+    ex.signalstats = lambda p: {}
+    ex.run_project(project, reuse=False)
+
+    # a and b both read the source; c reads op:a -- not the previous op's output.
+    assert calls == [("a", "src.png"), ("b", "src.png"), ("c", "a.png")], calls

@@ -127,7 +127,7 @@ def test_photo_hsv_op():
            "project": {"project_id": "h", "source": {"source_id": "s.png", "path": "s.png"},
                        "operations": [{"op_id": "h", "type": "PHOTO_HSV", "input": "source",
                                         "parameters": {"green_hue": 100, "green_luminance": -15,
-                                                       "blue_hue": 240, "blue_saturation": 20}}],
+                                                       "blue_hue": -40, "blue_saturation": 20}}],
                        "outputs": [{"output_id": "o", "operation": "op:h", "path": "o.png", "format": "png"}]}}
     p = parse_request(doc)
     assert p.operations[0].type == "PHOTO_HSV"
