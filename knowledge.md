@@ -772,3 +772,72 @@ as the reviewer's complaint, not just the slider.
 5. **Re-test the praised element after every targeted fix.** Cutting cyan for the ridge also
    drained the lake; a hue-rotation variant restored the lake but brought the ridge cast back.
    The winner was the one that kept the complaint fixed.
+
+---
+
+## 23. The 6.5/10 pass: adding depth without adding crunch
+
+The v2 grade was scored **6.5/10** — the first version to read as a plausible alpine scene.
+The remaining complaints were structural rather than hue mistakes:
+
+1. flat midtones: the gullies and pine band had lost separation after the chroma cuts;
+2. a near-flat white sky with no cloud gradient;
+3. soft/blocky fine texture, which is the source's 195×183 resolution showing through.
+
+### What was changed
+
+- **Depth:** a gentle S-curve on the tone anchors (`tone_shadows 0.13`, `tone_midtones 0.515`,
+  `tone_highlights 0.85`) plus `shadows -3` on the soft levels band. This darkened the gullies
+  and pine band while leaving the sunlit tops alone.
+- **Sunlit grass:** `yellow_luminance +18` to lift the mid-slope band, with
+  `yellow_saturation -9` so the lift did not reintroduce neon (the v2 lesson).
+- **Warmth:** `white_balance_temperature` 6650 → **6800** + tint 2. That is the +3..+5 slider
+  range the reviewer asked for; it warms the sunlit boulder and slope edges against the cool
+  lake, and moves the neutral cast *toward* zero.
+- **Sky:** the first attempt used `tone_whites 0.92`, which recovered clipping but compressed
+  the sky into a flat band (luma std fell from 5.2 to 2.2). The fix was to keep the tone-curve
+  shoulder open (`tone_whites 0.99`) and compress only the top end with the levels band
+  (`highlights -12`), which preserves the gradient and still reports 0.006% clipping.
+- **Texture:** clarity stayed at 5 and sharpness at 2. The depth came from the curve, not from
+  local-contrast sharpening, so the compressed foliage did not get crunchier.
+
+OBSERVED on the 195×183 source (PNG master):
+
+| metric | source | v2 (6.5/10) | v3 |
+|---|---|---|---|
+| highlight clipping | 5.49% | 0.00% | **0.006%** |
+| shadow clipping | 0.03% | 0.42% | 0.61% |
+| neutral cast R-G / B-G | -8.6 / +3.1 | -6.4 / -1.9 | **-5.2 / -2.2** |
+| mean saturation | 54.1 | 47.6 | 48.2 |
+| neon share (≥90% sat) | 4.72% | 0.15% | **0.07%** |
+| mountain luma std | 19.8 | 22.4 | **23.8** |
+| pine-band luma p10 | 61.2 | 46.2 | **40.7** |
+| sky luma std | 6.8 | 5.2 | **6.1** |
+| grass band p10 / p90 | 72.0 / 166.1 | 58.1 / 169.4 | **51.7 / 171.1** |
+| boulder R-B (warmth) | 13.6 | 14.0 | **16.4** |
+
+The S-curve is measurable in both directions: the pine band's p10 dropped 5.5 points (deeper
+shadows), the sunlit grass p90 rose 1.7 points, and the mountain's luma standard deviation rose
+from 22.4 to 23.8. The sky recovered gradient *and* stayed clean because highlight compression
+moved from the hard white anchor to the soft levels band.
+
+### Full-resolution source
+
+No higher-resolution copy of this photo exists on the machine (Desktop, Downloads, Pictures,
+and the rest of the user profile were scanned: 9,459 images, none matching). The 195×183 file is
+the only source. The recipe is resolution-independent, so `request_deliver_v3.json` can be run
+unchanged against the uncompressed original the moment it is available; the `clarity`/`sharpness`
+values are intentionally conservative for that reason.
+
+### Lessons worth keeping
+
+1. **A white-point anchor is a compressor.** `tone_whites < 1` lowers the ceiling and flattens
+   every bright gradient; use it only when the goal is to mute highlights, not to recover them.
+2. **Recover highlights with a soft band, not a hard ceiling.** The levels LUT's `highlights`
+   uses `_soft_delta`, so the top end compresses proportionally and keeps its shape.
+3. **Depth is a curve, not clarity.** On a small source, an S-curve adds separation without
+   amplifying JPEG blocks; local-contrast sharpening adds both.
+4. **Warm the light, not the whole frame.** A small WB shift warms the sunlit stone while the
+   lake stays cool; a split-tone would be the next step on a full-resolution file.
+5. **Check the neutral cast after a warmth move.** Warming reduces the red deficit but can
+   deepen the blue deficit; v3 trades +1.2 R-G for -0.3 B-G, which is the right direction.
