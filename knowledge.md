@@ -841,3 +841,54 @@ values are intentionally conservative for that reason.
    lake stays cool; a split-tone would be the next step on a full-resolution file.
 5. **Check the neutral cast after a warmth move.** Warming reduces the red deficit but can
    deepen the blue deficit; v3 trades +1.2 R-G for -0.3 B-G, which is the right direction.
+
+---
+
+## 24. The 7/10 pass: lower the sky ceiling, then stop
+
+The v3 grade was scored **7/10**. The reviewer called the color and tonal progression the
+cleanest yet and explicitly asked for **one** more move:
+
+1. pull the brightest sky/cloud whites down slightly;
+2. then keep grading hands-off, because further contrast or saturation would degrade a
+   195×183, heavily compressed source.
+
+That is exactly what was done: `highlights` on the soft levels band moved from **-12 to -18**.
+Nothing else changed — not contrast, not saturation, not clarity, not the HSL families.
+
+### Measured sky (PNG master)
+
+| metric | v3 (7/10) | v4 |
+|---|---|---|
+| sky mean luma | 236.6 | **230.8** |
+| sky p90 luma | 243.0 | **235.0** |
+| sky max luma | 243.0 | **236.2** |
+| pixels ≥245 luma | 0.0% | **0.0%** |
+| highlight clipping | 0.006% | **0.000%** |
+| mountain luma std | 23.8 | **23.8** (unchanged) |
+| pine-band p10 | 40.7 | **40.7** (unchanged) |
+| grass band p90 | 171.1 | **171.1** (unchanged) |
+| neutral cast R-G / B-G | -5.2 / -2.2 | **-5.2 / -2.3** |
+| neon share | 0.073% | **0.073%** |
+
+The mountain and foreground rows are deliberately identical: this was a sky-only move.
+
+### What lowering the ceiling can and cannot do
+
+The upper-right corner had no cloud structure to recover; its luma std is only ~4.3 in both v3
+and v4. Pulling the whites down prevents the corner from reading as pure white and restores a
+little atmospheric blue, but it cannot invent gradient that the compressed source never
+recorded. The honest ceiling here is the source resolution, not the grade.
+
+### Lessons worth keeping
+
+1. **Lower the ceiling, not the whole image.** One soft-band highlight move fixes a bright sky
+   without touching the mountain, lake or grass; a global exposure cut would have dimmed them all.
+2. **Flat white is not always clipping.** v3 had 0.006% clipped pixels but still *read* as blown
+   because the corner sat at 236–243 with almost no variation. Read the percentile spread, not
+   just the clip count.
+3. **When the reviewer says stop, stop.** The second half of the 7/10 note was a warning: on this
+   file, more contrast or saturation would trade color for texture. Change only the named defect.
+4. **A low-resolution source has a hard detail ceiling.** No LUT, clarity value or sharpening
+   radius can recover lichen or grass blades that were never sampled. The only real fix is the
+   uncompressed original.
