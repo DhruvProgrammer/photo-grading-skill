@@ -1,894 +1,803 @@
-# Photo Color Grading — Research Knowledge Base
+# Photo Color Grading — Knowledge Base
 
-Everything learned from sources (online articles, docs, tutorials) about how to
-color grade *photos* — the creative technique used to make images look
-cinematic, moody, warm, cool, etc. This is the foundation for the new
-photo-grading skill. Research conducted 2026-11-21.
+A practical, scene-first guide to grading photographs: what each control does, when to use it,
+where it belongs in the pipeline, and how to tell whether it worked. It is written as a
+reference, not a diary. Every rule here exists because a specific failure mode was observed and
+measured; the failures are described as technique, not as history.
 
-Note: photo color grading shares DNA with video color grading, but it is its
-own discipline with different tools and emphasis (one frame, permanent result,
-subject separation). Video grading is temporal/perceptual; photo grading is
-permanent, so restraint and correctness matter more.
+The governing idea: **a grade should support the subject, not announce itself.** The best color
+work is felt before it is noticed, and it survives being toggled off.
 
 ---
 
-## 1. What Is Color Grading? (Concept + Correction vs Grading)
+## Contents
 
-From Adobe and multiple sources:
-
-- **Color correction** = fixing problems that exist in the original capture
-  (bad white balance, a cast, exposure problems, muddy colors). The goal is
-  "neutral and true": what you see is approximately what the scene looked like.
-  Correction is the invisible, necessary first step. It is done with White
-  Balance, exposure, neutral grays (grey card / magic wand), and neutral
-  Curves.
-- **Color grading** = walking away from neutral on purpose, on the way to a
-  *feeling* or *style* ("warm and nostalgic, cool and clinical, muted and
-  expensive"). Teal-and-orange is grading. It is applied after correction.
-
-Order: **grade after you correct, never before** — grading on top of an
-uncorrected image means your mood fights a color cast you never removed
-(ABrush, Markus Hagner Photography, Skylum).
-
-- Correction = removing what the camera/light got wrong (Abrush).
-- Grading = pushing toward a feeling (Abrush, Skylum, Adobe, Fstoppers).
-
-## 2. Correction vs Grading — Why This Split Exists
-
-- If color looks right but flat → you may want grading (Skylum).
-- If the color looks wrong (cast, wrong temp) → correction.
-- Correction: white balance, exposure, crop, fine tweaks.
-- Grading: creative direction, atmosphere, mood.
-
-## 3. White Balance Fundamentals (Correction First Step)
-
-- Set white balance so neutrals look neutral BEFORE grading
-  (Starts slightly cool gives teal something to sit against — Sklum).
-- Set exposure for the subject, not the sky.
-- Pull Highlights down, lift Shadows a little for detail at both ends.
-- Set Whites/Blacks for a real black point without crushing.
-- Getting odd colors from auto white balance: use a fixed WB (daylight) or
-  shoot raw and set it in post (PhotographyIcon).
-- Use a grey card or a neutral surface (white shirt, grey concrete, road
-  sign) to set the neutral point with a Curves middle-eyedropper
-  (Abrush, PhotographyIcon).
-
-## 4. Color Theory for Grading
-
-### The two color wheels (why names vary)
-- **Painter's wheel (RYB)**: Red/Yellow/Blue primaries; complements:
-  Red–Green, Blue–Orange, Yellow–Purple, plus mixed pairs
-  (PhotographyIcon).
-- **Light/RGB wheel (used by cameras, screens, editing software)**:
-  Red/Green/Blue primaries; complements:
-  Red–Cyan, Green–Magenta, Blue–Yellow.
-  This is the wheel graders use; temperature slider runs blue→yellow;
-  tint slider runs green→magenta. Adding one color removes its opposite
-  (PhotographyIcon).
-
-### Complementary colors
-- Complementary = the one pair directly opposite the wheel with the most hue
-  contrast possible.
-- Why they work:
-  - **Simultaneous contrast**: opposite colors look more saturated/vivid next
-    to each other (a red jacket in a green field pops) (PhotographyIcon).
-  - Separate subject from background (warm subject vs cool background).
-  - Feel balanced — a complementary pair covers both warm and cool sides.
-  - Create depth — warm colors (orange) seem to come forward, cool (blue)
-    falls back → warm subject over cool background looks more separated.
-- Examples in the world: skin tones vs blue/teal background/sky; golden hour
-  vs blue shadows; warm windows against blue dusk streets; autumn leaves vs
-  blue water.
-
-### Warm/cool contrast
-- Warm = advance, Cool = recede (PhotographyIcon). Used to guide the eye:
-  warm subject + cool environment = subject pops forward; cool subject in
-  warm field = integrated/distant.
-
-## 5. The Signature Look: TEAL & ORANGE
-
-- **Teal & Orange** is the most popular cinema look and for good reason.
-  - Orange sits in the highlights, mostly in skin tones.
-  - Teal tints the shadows (colorsys: shadows/backgrounds/skies).
-  - Works because **orange and teal are complementary** — maximum visual
-    contrast between subject (skin) and world (sky/shadows).
-  - Preserves depth and separation. Used because "human skin sits in the
-    orange family" and cool backgrounds increase separation (Fstoppers,
-    PhotographyIcon, Skylum).
-
-### Why it works
-- Skin of every tone sits in the narrow hue range between red and yellow —
-  the "skin-tone line" on the vectorscope (Flashboards/Yaroflasher).
-- Pushing everything else toward the opposite hue (teal shadows, cyan skies)
-  separates the subject (Skylum, PhotographyIcon).
-
-### How to build it (the canonical recipe)
-
-From **Fstoppers** (create-cinematic-orange-and-teal-color-grade-lightroom):
-1. **Start with Shadows wheel**: reach a sufficient teal hue in the shadows.
-   Don't saturate too much — you still need other grades.
-2. **Warm up the Highlights wheel**: orange toward the top-right edge (most
-   saturated corner).
-3. **Control Midtones**: a slight orange/red tint bridges darker and lighter
-   areas; don't let the teal overpower the image; strike balance early.
-4. **Blend & Balance sliders**: blending 21 (lower = harsher cutoffs,
-   higher = smoother; 100 = all overlap, can get muddy). Balance (14 here):
-   left = more teal midtones, right = more highlight color.
-5. **Finish with Tone Curve**: mute blacks, slightly brighter highlights.
-
-From **PhotoshopTrainingChannel**: most popular movie look is teal & orange;
-teal tints shadows, orange sits in highlights/skin tones; works because they
-are complementary.
-
-From **PhotographyIcon**: teal shadows + warm highlights, restrained — the
-difference between generic and intentional is restraint. "One side of the
-pair carries the scene; the other appears only where it matters."
-- Restriction for grading: **Protect neutrals.** If white shirts/grey concrete/
-  daylight all go cyan, the image looks tinted, not designed. Keep true
-  neutrals in the frame (Skylum).
-- Motivate it in the lighting: blue dusk or daylight behind you, warm
-  practicals.
-
-From **Impact Photography**: keep the gate:
-- Shadows: hue ~210 (teal-cyan-blue), saturation ~25 (lower start ~10–25,
-  build up).
-- Highlights: hue ~40 (amber-orange), saturation ~20 (10–20).
-- Midtones: leave neutral, or hint of shadow color at saturation ~3–8.
-- Blending: ~60–80 (smoother transitions; higher for smoother).
-- Balance: negative → teal takes more of frame; positive → highlight color
-  extends down. Small moves make big differences.
-- Protected: keep skin warm but not orangish; lift shadows slightly to avoid
-  green.
-
-From **JustAdobe** (grading values for cinematic):
-- Shadows: Hue 210, Saturation 25, Luminance -5
-- Midtones: Hue 30, Saturation 8, Luminance 0
-- Highlights: Hue 40, Saturation 20, Luminance +5
-- Global wheel: leave 0
-- Blending: ~60, Balance: +15 (skin glows without losing teal shadows)
-
-From **Markus Hagner Photography**:
-- Shadows wheel: hue ~200–210, saturation 15–30.
-- Highlights wheel: orange, saturation ~10–25 (warm for portraits enhances
-  skin).
-- Midtones: small bridging color, or neutral.
-
-From **Fstoppers** (canonical 5 steps):
-1. Shadows wheel: teal (~200–210°), modest saturation.
-2. Highlights wheel: warm orange (30–45°), lower saturation than shadows.
-3. Midtones: neutral, or tiny warmth.
-4. Blend & balance: blending ~50–80; balance left = teal more, right = highlight
-   color more.
-5. Tone Curve: slightly lift black point, pull white point down (soft,
-   matte look).
-
-## 6. Other Classic cinematic looks (all built the same way)
-From Fstoppers/Impact/Skylum:
-- **Teal & amber**: shadows teal (~200°), highlights amber (~30–45°), good for
-  portraits/city at golden hour.
-- **Bleach bypass**: low saturation, high contrast, silvery highlights —
-  suits gritty/overcast.
-- **Night blue**: deep blue shadows & midtones, warm practical lights untouched.
-- **Autumn dusk**: burnt orange highlights over deep brown shadows, warm/nostalgic.
-- **Orange + blue**, **Green + magenta**, **Deep blue + magenta neon**, or a
-  single cold tone for winter scenes.
-
-## 7. Lightroom/Camera Raw Color Grading Panels (the tool)
-
-From Adobe Introducing Color Grading blog + Usage Guides:
-- The Color Grading panel has three color wheels: Shadows, Midtones,
-  Highlights (+ a Global wheel).
-- Each wheel has a hue/saturation handle (angle = hue, distance = saturation;
-  center = no tint; edge = max saturation).
-- Below each wheel: a dedicated **luminance** slider (adjusts brightness of
-  that tonal range; e.g. lift shadows = -5 in Fstoppers example).
-- **Blending slider**: how much the three ranges overlap. 0 = minimal overlap
-  (each range independent, not hard cutoff). 100 = all overlap → smooth look,
-  colors can mix/blend and get muddy. Default 50; raise to soften transitions
-  (Skylum: 50–80).
-- **Balance slider**: shifts where the midtone boundary sits (left = midtones
-  darker, right = lighter).
-- **Global wheel**: adds a universal tint on top of the three-way toning;
-  subtle combos; try it.
-
-### How to use:
-1. Handle inside wheel: angle = hue, distance = saturation.
-2. Blending & Balance for transitions.
-3. Make base edit first (Adobe): adjust white balance, exposure, contrast
-   BEFORE visiting the Color Grading panel. Grade the good base.
-
-## 8. HSL / Color Mixer (secondary precision tool)
-
-From PhotographyIcon, PHLEARN, Sklum, impact photos, darkroom:
-- HSL lets you shift hue/saturation/luminance per color (Reds, Oranges,
-  Yellows, Greens, Aqua, Blues, Purples, Magentas).
-- Used for skin tones and skies BEFORE grading (order: HSL then Color Grading,
-  or both).
-
-Example values (Impact Photography,marketing):
-- Orange Hue: leave near 0, or slightly warmer/redder. Orange Saturation:
-  small change, often down slightly. Orange Luminance: slightly up for
-  brighter skin.
-- Yellow Hue: nudge toward orange (negative). Yellow Sat: down a little.
-- Green Hue: shift toward aqua (positive). Green Sat: down a lot (kill neon
-  foliage). Green Lum: down slightly.
-- Aqua Hue: toward blue (positive) for teal; Sat: to taste; Lum: to taste.
-- Blue Hue: toward aqua (negative) for teal; Sat: moderate; Lum: down for
-  deeper skies.
-- Pull Purples/Magentas down if they don't belong in the scene.
-
-### Skin tone protection (HSL)
-- Skin lives mostly in midtones + highlights. When you warm the highlights,
-  watch faces first — the moment skin turns jaundiced, reduce highlight
-  saturation or shift hue toward yellow-orange rather than pure orange.
-- The Midtones wheel is the skin-tone guardian: many leave it neutral or add
-  faintest warmth, and keep shadows teal.
-- Keep highlight saturation modest. Use HSL to counter unwanted shifts.
-
-### Common failures to avoid:
-- Oversaturated grade: halve teal saturation — the grade should be felt, not
-  seen (it should be able to toggle off without killing the image).
-- Orange skin = grader warmed highlights globally and forgot the face; mask
-  subject (Select Subject mask), pull saturation back or shift temp.
-- Orange skin cause: pushing Orange Sat up, or pushing Orange Hue toward
-  red/yellow (sunburn); fix: lower highlight saturation, bring Orange
-  Luminance up so skin reads brighter not oranger (ABrush, Markus Hagner).
-- Muddy or green shadows cause: teal leaning too green, heavy faded blacks,
-  leftover green. Fix: move shadow hue toward blue, cut Green Sat in HSL,
-  restore black point via curve.
-- Automatic white balance can kill your warm/cool contrast; shoot raw and set
-  WB in post or set fixed daylight.
-
-## 9. Tonal Curve (base + finish)
-
-From Adobe + Fstoppers:
-- Lift black point slightly, pull white point down → "muted, matte film look"
-  (soft blacks, highlights roll off gently, no hard clipping).
-- Add a soft S-curve in midtones for contrast.
-- Tone curves are the "finish": polish wood to show the desired look.
-
-## 10. Wider cinematic workflow (multiple sources combined)
-
-### Canonical workflow (Impact Photography, Markus Hagner, Fstoppers):
-1. **Crop** (if desired): wider aspect ratio, motivated light.
-2. **Set base**: white balance, exposure, contrast.
-3. **Grade**: Color Grading wheels (Shadows/Midtones/Highlights), blending,
-   balance.
-4. **HSL**: tidy palette, protect skin/skies.
-5. **Tonal curve**: matte + S-curve.
-6. **Vignette / grain** (optional): subtle, to draw eye inward.
-
-### shoots for cinematic edit:
-- Underexpose slightly (-0.3 to -0.7 EV) so practicals/skies keep detail.
-- Use raw so the grade has room to move.
-- "Motivated light": blue ambient (dusk/night) + warm practicals give natural
-  warm-cool split.
-- Skin in orange family: designed so warm subjects read against cool
-  backgrounds.
-
-### "Film look" attributes (Mikkolagerstedt, Sklum):
-- Sparse palette, controlled contrast, grain (small, roughness ~50).
-- Soft highlights, muted blacks.
-
-### Step-by-step (non-AWARE from various tutorials):
-1. Fix color casts (WHITE_BALANCE / correction) — click a neutral, e.g.
-   grey card or white shirt.
-2. Fix exposure, contrast, highlights/shadows.
-3. Grade shadows (teal), midtones, highlights (warm), blending, balance.
-4. HSL adjustments.
-5. Curves for tone.
-6. Vignette, grain (optional).
-
-## 11. Different cinematic looks worth knowing
-
-- **Golden Hour / Warm Mood**: warm highlights, cool shadows → nostalgia.
-- **Teal & Orange**: modern blockbuster, depth, subject separation.
-- **Desaturated / Moody**: low saturation, cool tones, restrained.
-- **Retro / Vintage**: warm blacks, grain, faded highlights.
-
-## 12. Tools & Software Covered
-
-- **Adobe Lightroom / Camera Raw**: 5-step cinematic workflow; Color Grading
-  wheels + HSL + basic panel + curve.
-- **Adobe Photoshop**: Selective Color Adjustment Layer for teal/orange;
-  curves S-curve; channel curves; new layer trick (fill grey, Difference
-  threshold) for neutral.
-- **Photoshop Training Channel** (teal/orange tutorial).
-- **abrsuh / PHLEARN / Fstoppers /iosyncrasies / Darkroom / Sklum / Lutland /
-  Adobe Blog / JustAdobe / Markus Hagner / Impact Photography** — all
-  Lightroom color grading tutorials.
-- **Viewport tools (modern web apps)**: auto-detection (Ctrl+click on wheel)
-  etc. (Adobe Advanced).
-
-## 13. Equipment & Shoot Notes (to make grading work)
-
-- Shoot RAW (more color information, greater headroom).
-- Underexpose slightly.
-- Avoid harsh midday light (flat).
-- Motivate lighting (warm windows against blue dusk).
-- (Video-skills carry over for light, lens, color temperature physically.)
-
-## 14. Key Principles (TL;DR, the "rules" of photo color grading)
-
-1. **Correction before grading** — grade after correct; grade mood on a
-   corrected image.
-2. **Teal in shadows, orange in highlights/skin = the classic cinematic split.**
-   Composed of complementary colors (blue/yellow opposites).
-3. **Modest saturation + restraint.** If the grade is obvious, halve it.
-4. **Complementary contrast** = strongest hue contrast, separates subject
-   from background, creates depth and balance.
-5. **Warm = advance, cool = recede** — use to guide the eye.
-6. **Protect skin/neutrals.** Orange skin, green skin, and lack of true
-   neutrals are failure modes; fix with masking or reducing saturation.
-7. **Balance hue and saturation in the 3 wheels (shadows/midtones/highlights);
-   Use Blending for smoothness; use Balance for where the split sits.**
-8. **Tonal Curve for matte finish + soft highlights.**
-9. **"A grade should support the subject, not announce itself. The best
-   grading is felt, not seen."** (Abrush)
-10. **Best grades are per-image.** Different looks (warm, cool, muted,
-    desert, forest) depend on the image's own palette and story.
-
-## 15. Source URLs (citable)
-
-Fstoppers, PHLEARN, Astronomy-news — primary sources used for research.
----
-
-## 16. DaVinci Resolve color grading transcript tips (video review)
-
-A DaVinci Resolve color grading walkthrough ("Mitchell Mullins" style — a free professional
-workflow video; the video was transcribed and read; tips adapted to the photo skill).
-Key tips/trick extraction (DaVinci-specific, cross-applicable):
-
-### Two pillars: Corrections vs Look development
-
-- **Corrections** — "where is the image actually living how are we perceiving this image" —
-  exposure, balance, contrast; fix the camera/light problems. The photo skill: `PHOTO_CORRECTION`.
-- **Look development** — "how does this image feel how does it come across what is our intention
-  right how does this fit into the story" — color separation/hue — mood, depth. The photo skill:
-  `PHOTO_GRADING` + `PHOTO_LUT_APPLY`.
-- Order: **corrections first, then look** ("if we were to adjust our offset... you'd shift the
-  middle gray point and all of your other Corrections later down the line no longer stay the same").
-
-### Corrections (the biggest brush strokes — work photometrically, keep the camera's light levels)
-
-- **Exposure**: use the **HDR Global wheel** (lifts/lowers uniformly, anchored at the blacks) —
-  NOT the Offset wheel (it shifts the whole image and changes the middle gray point — destructive).
-  The skill: `exposure` in `PHOTO_CORRECTION`.
-- **Linear balance**: set gamma to "linear" (void of log space) and gain to where the image should
-  live. The skill: `white_balance_temperature`/`white_balance_tint`.
-- **Contrast**: "the biggest tip... contrast is the separation between black and white"; there's a
-  **pivot point** (middle gray ~336 — "the fulcrum of our contrast") — steer the eye: increase
-  contrast if "we want to make it feel more pleasing" — but only if "the question for us is does it
-  need to do". Avoid cranking contrast past where it clips. The skill: `contrast`.
-- "much of knowing what NOT to do" — don't overdo; "a lot of people just have too much contrast".
-
-### Split toning (the signature look — "color separation")
-
-- **Everything split toning happens in your curves**: anchor at middle gray (Da Vinci's
-  "Nano Middle Gray" — poke the curve to nail down the red/green/blue center), raise reds/greens in
-  the highlights (warm highlights), drop greens/blues in the shadows (cool shadows). That hue split
-  is the color separation — "we're separating our colors in the same way we did with our luminance
-  Channel and the contrast".
-- BUT: **I personally never do this — a lot of colorists rely on LUTs** ("we can rely on LUTs to give
-  us that split toning effect"). Film emulation LUTs (Kodak 2383, Fuji stocks, Tera, "the Legacy L
-  Collection") "are emulating film... finely-tuned to what our eyes find most preferable". LUTs
-  "look great they look awesome" and "you can dial it back... take the look too far — there's really
-  no rules". The skill: `PHOTO_LUT_APPLY` (+ `strength`), plus DIY wheels via `PHOTO_GRADING`.
-
-### Post-L granular tweaks (from the transcript, mapped to the skill)
-
-- **Saturation**: Da Vinci has three tools — `Saturation` (multiplier: "multiply some of the color
-  values" — blows out super-saturated elements), `Color Slice` ("deeper color values, more natural
-  — personally like the deeper color values"), `Color Boost`/vibrance (additive — "adding colors that
-  aren't there"). The skill: `saturation` in `PHOTO_CORRECTION` (like Color Slice).
-- **Matrix**: channel-strength tweaks per channel ("skin correction": push the skin toward magenta,
-  balance red/blue). The skill: `white_balance_temperature`/`white_balance_tint` in `PHOTO_CORRECTION`.
-- **HSV tweaks post-L**: "Hue vs Hue"/`Hue` + `Hue Saturation` — "adjust our hue... we can adjust
-  our blue saturation... similar to our Matrix". The skill: wheels.
-- **Log wheels post-L**: "drop some of the blacks to give us a little deeper of a feel" — log
-  wheels as finishing tweaks. The skill: wheels' `luminance`.
-- **HK — subtle luminance**: a post-L "hue/hue secondary" — humans perceive certain saturation
-  values as more luminous; tacks subtle luminance onto the colors (leaves out the moments of the
-  film look). The skill: the global `strength` dial ("dimming everything by N%").
-
-### Other tips
-
-- **Color space sandwich** (any camera → working space → display): input color space → Da Vinci wide
-  gamut → output color space (Rec 709 gamma 2.2 — "optimized for YouTube / macOS"). The skill:
-  `pix_fmt` measured at validation; `PHOTO_GRADING` works on the wide gamut.
-- **Teal & Orange** — "the classic teal and orange you know — push the highlights warmer, push the
-  highlights cooler" — the most recognized cinematic split (complementary). The skill: the default
-  look (shadows hue 190, highlights hue 40).
-- **Skin protection** ("much of the color difference is when you see the blood underneath the
-  skin"): hue-rotate skin back (magenta → yellow) and dial back saturation; "I don't mind where it's
-  at" nuance. The skill: `PHOTO_GRADING.balance`, wheels' saturation, `white_balance_tint`.
-- **Workflow philosophy**: "the biggest unlock is figuring out what each of those are and then
-  identifying what the most preferable approach is"; "do more with less"; "never be afraid to take
-  the look too far — there's really no rules"; "a lot of people are just doing too much — these
-  couple adjustments make the image look better than most things I've graded in my entire career";
-  "much of what makes a grade feel cinematic is subtlety: 'I'd say a lot of the difference is you
-  don't really want to see the effect'".
-- **Simplicity**: "the whole philosophy here is keep things as simple as possible"; end-of-grade
-  check: "whenever you think you're finished — try turning the look off and on — if 'before' looks
-  broken, you've overcooked it" (the skill: `photo-grading plan`/`doctor` as checks).
-- **Film stocks as inspiration**: "a lot of what we're trying to emulate in these split tones is the
-  characteristics of film... finely-tuned and tailored to what our eyes find most preferable"
-  (Kodak 2383, Fuji, Tera). The skill: wheels emulate the same splits.
-
-### Strength semantics (new, implemented in the skill)
-
-"Dial it back" — `PHOTO_GRADING.strength` (0..1): effective blend = `blending/100 * strength` — a
-"look dial" (strength 0.5 = half the grade, 0 = identity). `PHOTO_LUT_APPLY.strength` scales a user
-LUT toward identity (`out' = in + strength*(entry - in)`), so `strength 0.5` gives the same result
-as `PHOTO_GRADING.strength 0.5` on the same wheels (verified empirically).
-"Film grain" (transcript: "film grain this is really important... use it sparingly") — `grain`
-(0..50) → `noise=alls=N` (verified filter exists in ffmpeg 8.0.1).
-"Much of what makes a grade feel cinematic is subtlety: 'a lot of the difference is you don't
-really want to see the effect'".
+1. The non-negotiables
+2. Read the frame before touching a slider
+3. The pipeline: correct, shape, color, finish
+4. White balance
+5. Exposure and tone
+6. Color: saturation, vibrance, HSL
+7. Split toning and classic looks
+8. Local control without masks
+9. Scene playbooks
+10. Finishing: clarity, sharpness, grain, output
+11. Quality control: measure, don't guess
+12. Parameter reference
+13. Engine invariants: why grades fail
+14. Glossary
+15. References
 
 ---
 
-## 18. Color theory fundamentals (video review)
+## 1. The non-negotiables
 
-A general color-theory walkthrough (RYB painter's wheel, hue/saturation/luminance).
-Key tips/trick extraction (cross-applicable to photo color grading):
-
-### The color wheel & basic terms
-
-- Wheel: 3 primaries (Red/Yellow/Blue - the painter's wheel), secondaries, tertiary colors.
-- **Hue** - "simply the color itself" (name any color - red, orange, blue - "pun intended").
-- **Saturation** - intensity of the color: pure blue -> reduced saturation -> gray; darker blue ->
-  black, lighter blue -> white.
-- **Luminance** - how bright/dark the color is. "The reason why luminous is so important is because
-  it mainly controls the contrast between the colors."
-
-### Luminous contrast - the B&W check trick
-
-- "Simple trick, convert your image into black and white. If everything looks flat, it means there is
-  not much of luminous contrast." - the skill's before/after signalstats measurements (YAVG/UAVG/VAVG)
-  record the same idea (luminance + chroma before/after) as OBSERVED values.
-
-### Color associations (guidelines, not rules)
-
-- Red = passion, energy; Blue = stability, trust (also isolation). Etc. "At the end, these are just
-  on paper associations. It need not always be true." - the skill: don't force associations; wheels.
-
-### Frame composition with color
-
-- "If everything in the frame is super saturated and vibrant, the viewer might get confused about what
-  to focus on" - "some colors are comparatively more saturated than others - the eyes naturally be
-  drawn to them. Let's divide the frame into two groups, saturated colors and neutral colors.
-  Saturated colors as the main subject and neutral colors as the negative space" - balance: "one or
-  two colors can dominate while the other colors can play supporting roles" - "prevents chaos".
-
-### Warm/cool colors
-
-- Warm = reds, oranges, yellows (lows on the color wheel's "temperature"); cool = blues, greens,
-  purples (higher temperatures). Note the opposite convention from white-balance "temperature" -
-  don't get confused (skill: white_balance_temperature).
-
-### Famous looks: Teal & Orange
-
-- "The famous teal and orange look works because it's a contrast between warm and cool colors. Skin
-  tones usually fall on the warm side while the background or the shadows can be pushed towards the
-  teal side" - the skill: the default wheels (shadows hue 190, highlights hue 40).
-
-### Color harmony (cheat sheet)
-
-- **Monochrome** - one color, different shades (not black and white!).
-- **Complementary** - opposite on the wheel (Teal & Orange is the example).
-- **Analogous** - three side by side, natural, easy on the eyes.
-- Guidelines; "you don't have to always stick to it".
-
-### Applying theory to shots
-
-- Mindful framing: "which colors help my subject to stand out and which are distracting" - portraits:
-  outfits (pop vs blend); products/food: pop colors.
-- "Color actually plays a huge role in a consistent visual style" - style from story/emotion.
-- "don't mistake... experimenting - developing a style is important but if you don't experiment, you
-  won't learn" - the skill: contrast/strength/strength dials, virtual copies.
-- "Color doesn't just make your images look good - different colors feel different."
-- Practical advice for styles: "Colors can basically be divided into two groups... warm colors and
-  cool colors... you can stick to warm or cool or use a combination".
+1. **Correct before grading.** White balance, exposure and tone endpoints come first. Grading a
+   cast means the mood fights a problem that was never removed.
+2. **Protect the anchors.** Skin, sky, water, snow and neutral stone are what viewers use to judge
+   whether an image is "right". A grade that wins the foliage but turns the boulder green is a
+   failed grade.
+3. **Change one variable at a time.** If three sliders move together, you cannot tell which one
+   helped. Make a variant, compare, keep the winner.
+4. **If the grade is obvious, halve it.** Saturation, contrast and split tones all read stronger
+   after a break. The toggle test: turn the look off; if the "before" looks broken rather than
+   merely flatter, the grade is doing too much.
+5. **Measure the result.** Eyes adapt to a screen in minutes. Percentiles, clipping, neutral-pixel
+   cast and region contrast do not.
+6. **Stop before the texture breaks.** On a small or compressed file, the last 10% of contrast or
+   sharpening costs more detail than it adds punch.
 
 ---
 
-## 19. Adobe Lightroom color grading tips (video review — Lightroom Color Grading panel)
+## 2. Read the frame before touching a slider
 
-A Lightroom color grading tutorial (photo-specific tips). Extracted from the transcript:
+Before choosing a look, answer five questions.
 
-### Foundation first
+| Question | Why it matters | What to do with the answer |
+|---|---|---|
+| What is the subject? | The grade should separate it, not compete with it | Put the strongest contrast and warmth on the subject; mute the rest |
+| Where is the light coming from? | Warm/cool direction should follow the light | Warm the lit side, cool the shade; do not invert the sun |
+| What are the anchors? | Skin, sky, water, snow, stone set the viewer's expectations | Protect their hue and luminance; grade around them |
+| What is the dynamic range? | Clipped highlights or crushed shadows limit recovery | Recover what exists; do not invent what does not |
+| How much detail is in the file? | Resolution and compression set the sharpening ceiling | Small/soft file: tone curve over clarity, low sharpening |
 
-- **Establish a color foundation with the Basic panel** (temperature + tint) before touching the
-  Color Grading panel: "you should not even be touching that color grading panel until you first
-  set a foundation of color for your image... This is the first place I always recommend starting
-  out when you're editing color because it allows us to establish a general mood... And the white
-  balance adjustments creatively" — "if you shot an auto white balance, your camera probably did a
-  fantastic job of balancing that scene... go up here and select auto".
+### Choose the look from the scene, not from a preset
 
-### The Color Grading panel (the 3-way wheels)
+- **Alpine / lake:** cool water and haze, neutral stone, natural greens, warm sunlit edges.
+- **Forest:** deep greens, restrained saturation, cool shade, soft light.
+- **Desert / canyon:** warm highlights, neutral sand, blue shadows, high clarity.
+- **Coast / sea:** cyan-to-blue separation, clean horizon, cool atmosphere.
+- **Golden hour / portrait:** warm skin and highlights, cool shade, gentle contrast.
+- **Night / city:** mixed practicals, protected highlights, blue shadows, selective warmth.
+- **Snow:** neutral whites, cool shadows, very gentle contrast.
+- **Product / food:** neutral white balance, clean highlights, modest saturation, crisp detail.
 
-- Three circles: **Shadows** (shadow areas), **Midtones** (gray/middle of the photo), **Highlights**
-  (brightest areas). Each wheel: **hue** (the color), **saturation** (purity), **luminance**
-  (brightness of that color).
-- **Blacks don't light up**: "black is going to stay black" — "if we change the luminance values of
-  those shadows, we can bring those blacks up" (drag the luminance slider right — "adding gray into
-  that black, allowing it to be affected by that shadow adjustment").
-- **Blending**: smooths gradients (right = smooth, left = abrupt). **Balance**: favors highlights
-  (right) or shadows (left). Play with both.
-- **Global** wheel: add over the entire image ("if you really want to lean into a certain color").
-- **Bigger circles**: finer color selection.
-- **Sliders**: click a circle, drag the hue/saturation/luminance sliders for fine control.
+### The black-and-white check
 
-### Color combinations (the most common in Lightroom)
-
-- **Complimentary colors** — opposite on the wheel:
-  - **Blue & orange** — "a color combination that I use in so many of my images because it's
-    incredibly pleasing on the eye and it's also naturally occurring. So, a lot of our scenes
-    already have these complimentary colors built into them" — enhance: "add some blue into the
-    shadows... add some warm tones into those highlights" — the skill: the default wheels.
-  - **Green & red** — "while it's not entirely natural... it kind of gives your images a classic
-    Fujif film aesthetic".
-  - **Purple & green** — for night photos.
-- **Monochromatic** — one hue, different luminances ("going all in on one specific color").
-- **Analogous** — close colors on the wheel ("leaning into one color family").
-- Experiment: "there's no right or wrong way to color grade an image" — "every photo is a little bit
-  different... make a few different variations" via snapshots ("snapshot number two" — reset with
-  option, create variants, compare) — the skill: plan/doctor as checks; stable wheels.
-
-### Workflow tips
-
-- **Subtle changes**: "even the smallest changes to the colors in your images can completely change
-  the mood or the vibe of your image" — "the more detailed and specific you can get with editing
-  color, the better your color grades will ultimately be" (work back and forth with HSL + color
-  grading).
-- **Color fatigue**: "when you're staring at the same edit for 10, 20, 30 minutes... take a step
-  back... looking back at this image here that we just covered... it looks way off... it's a little
-  bit too green... I'd probably warm it up a little bit... I always recommend taking breaks so you
-  can come back to that image with a fresh set of eyes".
-- **Find your color profile**: "the more you play around... the more you're going to kind of find
-  what works for you and what works for your images" — "when you do find what works for you, I would
-  highly recommend incorporating those grades into presets of your own... they don't have to be
-  super strong, crazy presets" (the skill: the skill's strength dial = preset dial; wheels).
-- **Family style**: "you might vibe with a slightly different color combination" — "my Film Vibes
-  preset pack has color grading built in" — the skill: users can compose their wheels per photo.
-
-### Skill mapping notes
-
-- LRS wheels == skill wheels (hue, saturation, luminance per tonal range) — documented in
-  knowledge.md section 16 and docs/architecture.md.
-- Complimentary combos: Teal & Orange is the skill default (§16); green & red, purple & green are
-  also native combos (§19).
-- The "dial back" concept (§16) and LUTs — consistent with this video's "make a few different
-  variations" workflow.
+Convert a copy to grayscale. If the frame looks flat, the problem is luminance separation, not
+color. Fix it with the tone curve before adding saturation. If the frame looks busy, the problem
+is too many competing colors; simplify the palette with HSL instead of raising contrast.
 
 ---
 
-## 20. Lightroom color grading feedback (user audit of a "vibrant" grade)
+## 3. The pipeline: correct, shape, color, finish
 
-The user rated the vibrance-grade result 3/10 with their own fix recipe (audit of
-`graded.png` from the original photo). Key learnings (their own words):
+Order matters because every step becomes the input to the next.
 
-### What was broken (their analysis of the vibrance result)
+| # | Step | Primary controls | What it fixes | Stop condition |
+|---|---|---|---|---|
+| 1 | Read the frame | eyes, grayscale check | unknown subject/palette | you can name the anchor and the intended mood |
+| 2 | White balance | `white_balance_temperature`, `white_balance_tint` | cast, mixed light | neutrals read neutral, mood intact |
+| 3 | Exposure and endpoints | `exposure`, `highlights`, `shadows`, `blacks`, `whites` | clipped highlights, dead shadows | highlight clip near zero, shadow detail present |
+| 4 | Tone shape | `contrast`, `tone_*` anchors | flat midtones, harsh shoulder, matte finish | separation without crunch |
+| 5 | Palette cleanup | `PHOTO_HSV` families | neon foliage, cyan haze, oversaturated water | offending family fixed, other families unchanged |
+| 6 | Overall chroma | `saturation`, `vibrance` | dull or excessive color | neon share low, saturation not above the source unless intended |
+| 7 | Look / split tone | `PHOTO_GRADING` wheels, LUT + strength | mood, warm/cool separation | neutrals clean, skin safe, grade reversible |
+| 8 | Finish | `clarity`, `sharpness`, `grain` | softness, local flatness, banding | no halos, no blocky crunch |
+| 9 | QA and export | `inspect`, format encode | hidden clipping/cast | metrics pass, one final encode |
 
-- **Over-saturation & clipping**: blue/green pushed past limits — foliage/water lose micro-detail
-  → flat neon blocks.
-- **Blue cast in midtones/shadows**: mountains cyan — flattens atmospheric depth.
-- **Blown highlights**: harsh clipping, no roll-off on rock/clouds.
-- **Poor color separation**: greens → radioactive yellow-green; muddy teal in shadow brush.
+**Why this order:**
 
-### Their fix recipe
-
-1. **Pull back saturation and selectively tune greens/blues** (not global sliders) — their #1.
-2. **Fix white balance + split toning**: neutralize blue cast in midtones; keep cool in
-   shadows/atmosphere, warm sunlight on stone/dry edges — their #2.
-3. **Rebuild contrast with a tone curve**: anchor deep blacks without crushing; smooth the
-   highlight shoulder for clean roll-off — their #3.
-4. **Refine HLS (per-color)**: greens → forest/olive (hue + luminance down); blues → separate
-   sky/water; per-color hue/sat/lum — their #4.
-5. **Careful haze/dehaze + clarity** — over-sharpening/dehaze creates halos on edges — their #5.
-
-### Skill implementations of their fixes (added in this audit)
-
-1. **#1 "Pull back saturation first, selectively tune greens/blues"** — implemented as
-   **`PHOTO_HSV`** (per-hue-family tweaks — `green_hue/luminance`, `blue_hue/saturation/...` for
-   red/orange/yellow/green/cyan/blue/magenta — via `build_hsl_lut` + lut3d). Note: the skill's
-   `saturation` is a blunt global scale (saturation +100 → eq saturation scale 2.0, which clips);
-   a dedicated **`vibrance`** (weighted toward colorful pixels, low-chroma gated) now exists and is
-   the safer "make it vibrant" control.
-2. **#2 "White balance + split toning"** — skill: `PHOTO_CORRECTION.white_balance_temperature/tint`
-   (balance) + `PHOTO_GRADING` Teal & Orange wheels (complementary split).
-3. **#3 "Tone curve"** — new: `PHOTO_CORRECTION` gained `tone_blacks`/`tone_shadows`/`tone_midtones`/
-   `tone_highlights`/`tone_whites` (0..2; piecewise-linear on BT.709 luma anchors via
-   `build_tone_curve_lut` + lut3d; identity at defaults). Anchor deep blacks (tone_blacks > 0 lifts
-   blacks), smooth the highlight shoulder (tone_whites < 1 pulls the white anchor down, softening
-   the shoulder).
-4. **#4 "HSL per-color"** — new op: `PHOTO_HSV` — implemented as `build_hsl_lut` (per-hue-family
-   LUT tweaks via `_tint` semantics: hue rotation + saturation scale + channel shift).
-5. **#5 "Haze/dehaze + clarity"** — skill has `sharpness` (unsharp) and **`clarity`** (ffmpeg
-   `cas`, Contrast Adaptive Sharpen: local midtone contrast without the halos of a fixed
-   unsharp kernel). No dehaze filter in ffmpeg — noted.
-
-### Self-review loop (their advice, applied)
-
-- "make a few different variations, compare, find the best" — the skill: `photo-grading plan`
-  (dry run) + `doctor` as checks; smoke tests of every op on real photos; the double-run pitfall
-  (don't re-run the skill twice when auditing).
+- WB first, because every later LUT assumes the input is balanced.
+- Endpoints before contrast, because contrast around a clipped highlight only clips more.
+- Tone before HSL, because the HSL families need stable luminance to judge.
+- HSL before global saturation, because targeted fixes should not be re-amplified by a global boost.
+- Split tone after palette cleanup, so the look sits on a clean base.
+- Sharpening last, because it amplifies noise, compression blocks and color fringing.
+- One final encode, because repeated JPEG passes destroy exactly the fine texture being judged.
 
 ---
 
-## 21. The 1.5/10 audit: root causes, not slider guesses
+## 4. White balance
 
-The second "vibrant" grade was rated 1.5/10: false-color orange/amber blocks, hard mask
-edges, over-saturated foliage, a blown sky. The useful lesson is that none of those were a
-matter of taste — they were implementation bugs shipping underneath every grade. The audit
-reproduced each one on the actual photo, fixed it, and added a test that fails if it comes
-back. A color LUT pipeline is only as trustworthy as its index order and its HSV math.
+### What it does
 
-### The bugs (reproduced, then fixed)
+White balance sets which color is treated as neutral. Temperature moves the image between blue
+(cool) and yellow (warm); tint moves it between green and magenta. In this engine, temperature
+above 6500 K warms (lifts red, lowers blue), below 6500 K cools; positive tint adds magenta,
+negative tint adds green.
 
-| # | Bug | What it did | Fix |
+### When to use it
+
+- At the start of every edit.
+- When a neutral surface (rock, concrete, cloud, white shirt, gray card) has a visible cast.
+- When mixed light makes the subject and background disagree; balance for the subject.
+- When a deliberate warm/cool mood needs a foundation (slightly warm stone, slightly cool shade).
+
+### When not to use it
+
+- Do not neutralize a sunset, candlelit interior or neon scene. The cast *is* the light.
+- Do not chase a whole-frame average. A green landscape is not a green cast.
+- Do not use auto WB blindly; it can flatten the warm/cool split that makes the image work.
+
+### How to do it
+
+1. Find a near-neutral patch (saturation below ~12%) in the midtones or highlights.
+2. Measure its R−G and B−G. Aim for both near zero; ±4–5 is usually acceptable, and some source
+   cast can be intentional.
+3. Adjust temperature first, then tint. Temperature fixes blue/yellow; tint fixes green/magenta.
+4. Re-check the anchors: skin, sky, water and stone. If warming the stone turns the lake warm,
+   compensate the water separately with HSL blue/cyan instead of undoing the warmth.
+5. Keep a copy of the pre-WB frame. If the corrected version feels lifeless, the original cast may
+   have been part of the mood.
+
+### Typical moves
+
+| Intent | Temperature | Tint |
+|---|---|---|
+| Neutral daylight | 6500 K | 0 |
+| Gentle warmth on stone/skin | +100 to +250 K | 0 to +3 |
+| Strong golden-hour warmth | +400 to +800 K | 0 to +5 |
+| Cool shade / overcast | −200 to −600 K | −2 to 0 |
+| Correct fluorescent green | 0 | −8 to −15 |
+| Correct magenta shade | 0 | +8 to +15 |
+
+### Failure modes
+
+- **Whole-frame cast "fix"**: the average moves, the neutrals do not. Measure neutral pixels only.
+- **Warm lake**: a global warm WB warms water too. Warm the land, then pull cyan/blue back.
+- **Gray snow**: neutralizing every channel in snow kills the blue shade that gives it form.
+- **Skin sunburn**: warming highlights globally pushes skin orange. Warm the light, then protect
+  orange with HSL luminance rather than more saturation.
+
+---
+
+## 5. Exposure and tone
+
+### Exposure
+
+Expose for the subject, not the sky. If the subject is correctly exposed and the sky is clipped,
+recover the sky with highlight compression; do not darken the subject to save a background that
+carries no detail anyway.
+
+- `exposure` is a uniform lift/drop. Small moves: ±0.1 to ±0.3; strong: ±0.5 or more.
+- Check the highlights after every raise. A bright sky can clip before the subject looks correct.
+
+### Highlight recovery: levels vs tone curve
+
+This distinction matters more than any single slider value.
+
+| Control | Behavior | Use it for | Avoid it for |
 |---|---|---|---|
-| 1 | `.cube` data written R-slowest/B-fastest | Adobe Cube 1.0 is **red fastest, blue slowest**; ffmpeg read every LUT with R and B transposed, turning hue/saturation moves into false-color orange/blue blocks | one shared `_cube_points()` iterator (the only definition of the order); `scale_lut_strength` maps entry index the same way; axis-order regression test |
-| 2 | `hsv_to_rgb` had all six sectors scrambled | every hue rotation (wheels, HSL, vibrance) corrupted colors | standard sector table + HSV→RGB→HSV round-trip test over primaries, gray and earth tones |
-| 3 | white balance was `hue=h=...` (up to 180°) | anything away from 6500 K inverted colors; tint only desaturated | `build_wb_lut`: normalized R/G/B gains (largest gain = 1, so nothing clips) and black stays black |
-| 4 | white-balance LUT added headroom to every channel | `(0,0,0)` became `(0.04,0,0)`; dark pixels turned into red/orange speckles | gains are multiplicative; a test asserts black is preserved at every temperature/tint |
-| 5 | `unsharp=la.size=3` — not a valid option | every request with `sharpness` failed | `unsharp=lx=3:ly=3:la=...`; error messages show the **tail** of ffmpeg stderr, not the banner |
-| 6 | operations ignored their declared `input` and chained linearly | a second branch from `source` was silently graded on top of the first branch → the false-color candidate images | run the DAG: each op reads `source` or `op:<id>`; each branch is independent |
-| 7 | intermediates were 8-bit and kept the source extension | JPEG re-compressed once per op, 8-bit rounding before heavy curves → posterization | lossless 16-bit PNG intermediates (`rgb48be`); the requested output format is encoded exactly once at the end |
-| 8 | reuse identity hashed the original source, not the op's input; no engine version; `--no-reuse` ignored | changing an upstream op reused stale downstream artifacts, and old buggy LUTs survived code fixes | identity hashes the actual input artifact + skill version + a fingerprint of `buildlut.py`/`executor.py`/`model.py`; `--no-reuse` applied |
-| 9 | HSL used nearest-family hard masks, then a 5-20% saturation gate | hue families stepped at boundaries; the first soft version still amplified the boulder's 20-30% chroma into blue-green mottling | normalized soft Gaussian family weights; HSL and vibrance are gated out below **30%** saturation, full at **50%** |
-| 10 | levels used hard luma thresholds | visible step where a band started | smoothstep band weights + `_soft_delta` (no hard channel clip) |
-| 11 | signalstats means from 16-bit planes compared against 8-bit numbers | before/after numbers no longer comparable after the 16-bit switch | normalize >255 plane means to the 8-bit scale |
-| 12 | "color cast" was the whole-frame mean | every green landscape was flagged, because green content is not a cast | `inspect` measures white balance on **near-neutral pixels only** (s ≤ 12%) and reports the neutral share |
+| `highlights` (levels band) | Proportional compression weighted by luma, soft headroom | Recovering bright sky/cloud/mist while keeping gradient shape | Adding a matte look |
+| `tone_whites` (tone anchor) | Lowers the white ceiling; compresses the top range toward a flat value | Muting the whole top end, matte finish | Recovering detail; it flattens the gradient |
+| `tone_highlights` (tone anchor) | Moves the 85% luma anchor; shapes the shoulder | Gentle shoulder shaping | Rescuing a blown sky on its own |
 
-### Guardrails added
+**Rule:** recover with `highlights`; shape with `tone_*`. If the sky looks flat after recovery,
+the white anchor was used as a compressor.
 
-- `photo-grading inspect IMAGE --json`: exact pixel statistics (luma percentiles, clipping,
-  mean/p95 saturation, neon share, hue families, neutral-pixel cast) plus conservative
-  warnings — the check that would have caught the 1.5/10 result before posting.
-- `PHOTO_CORRECTION.vibrance`: saturation weighted toward colorful pixels and gated away from
-  low-chroma texture; `PHOTO_CORRECTION.clarity`: `cas` (Contrast Adaptive Sharpen) for local
-  contrast without unsharp halos.
-- Tests: HSV round-trip, cube axis order, WB identity/black preservation, vibrance neutral
-  and low-chroma identity, tone curve, HSL softness, 16-bit measurement normalization.
+### The tone curve
 
-### The final "vibrant" recipe (195×183 mountain/lake photo)
+The curve is defined by five anchors on BT.709 luma:
 
-```json
-{"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source", "parameters": {
-  "white_balance_temperature": 6680, "white_balance_tint": 5,
-  "exposure": 0.14, "contrast": 18, "saturation": -6, "vibrance": 65,
-  "clarity": 12, "sharpness": 6,
-  "tone_blacks": 0.01, "tone_shadows": 0.15, "tone_midtones": 0.52,
-  "tone_highlights": 0.83, "tone_whites": 0.96}}
-{"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr", "parameters": {
-  "yellow_hue": -3, "yellow_saturation": 7, "yellow_luminance": 2,
-  "green_hue": -6, "green_saturation": 13, "green_luminance": 2,
-  "cyan_hue": -4, "cyan_saturation": -12,
-  "blue_hue": -5, "blue_saturation": 17, "blue_luminance": -2}}
+| Anchor | Input luma | Default output | What it controls |
+|---|---|---|---|
+| `tone_blacks` | 0.00 | 0.00 | deepest blacks; raising lifts/crushes them |
+| `tone_shadows` | 0.15 | 0.15 | shadow density; lowering deepens gullies and pines |
+| `tone_midtones` | 0.50 | 0.50 | overall midtone placement |
+| `tone_highlights` | 0.85 | 0.85 | shoulder brightness; raising lifts sunlit tops |
+| `tone_whites` | 1.00 | 1.00 | white ceiling; lowering softens/flattens the top end |
+
+The curve adds the same delta to every channel (preserving hue relationships), then clamps each channel.
+A channel can therefore reach its ceiling before luma does; check channel clipping, not only
+luma.
+
+### Three useful curve shapes
+
+**Gentle S-curve (depth without crunch)**
+
+```
+tone_blacks 0.005 · tone_shadows 0.13 · tone_midtones 0.515
+tone_highlights 0.85 · tone_whites 0.99
 ```
 
-Measured on the real photo (OBSERVED, not judged):
+Effect: darker shadows, slightly brighter upper midtones, open shoulder. This is the preferred
+way to add three-dimensionality on a small or compressed file.
 
-| metric | source | final |
-|---|---|---|
-| highlight clipping | 5.49% | **0.00%** |
-| shadow clipping | 0.03% | 0.61% |
-| neutral cast R-G / B-G | -8.6 / +3.1 | **-5.5 / -1.9** |
-| mean saturation | 54.1 | 59.0 |
-| neon share (≥90% sat) | 4.72% | 4.52% |
+**Matte film shoulder**
 
-Mean saturation is above the inspector's conservative 55 threshold because the source is
-already vivid; the neon share did not increase and the neutral cast improved, which is the
-part that matters. The boulder stayed gray, the lake deepened, the sky kept its roll-off.
+```
+tone_blacks 0.02–0.05 · tone_shadows 0.16–0.18 · tone_midtones 0.50
+tone_highlights 0.80–0.84 · tone_whites 0.94–0.97
+```
 
-### Lessons worth keeping
+Effect: lifted blacks and a soft white ceiling. Use sparingly on landscapes; it removes the
+deep black that gives rock and pine their weight.
 
-1. **Verify LUT index order before trusting any grade.** One transposed axis looks exactly
-   like "the user has bad taste".
-2. **Round-trip color-space math in tests.** Six scrambled HSV sectors produced every
-   psychedelic artifact in this audit.
-3. **Fix the engine, not the recipe.** Reaching for more sliders on a broken pipeline only
-   produces new artifacts.
-4. **Judge white balance on neutral patches**, never on a whole-frame mean.
-5. **Gate hue-selective math by chroma.** Rock, concrete, haze and JPEG noise have unstable
-   hue; a per-color LUT must leave them alone.
-6. **16-bit intermediates, one final encode.** Re-compressing every step is invisible until
-   the first heavy curve, when it becomes posterization.
-7. **Cache keys must include the engine.** Otherwise a fixed bug keeps producing its old
-   output from a stale intermediate.
+**Highlight-recovery curve**
+
+```
+tone_blacks 0.00 · tone_shadows 0.14 · tone_midtones 0.50
+tone_highlights 0.82–0.84 · tone_whites 0.98–1.00
+```
+
+Effect: the shoulder starts lower while the white point stays open, so bright areas roll off
+without becoming a flat band.
+
+### Contrast
+
+`contrast` is a linear expansion around mid-gray. It is fast and blunt.
+
+- Landscape: 10–18.
+- Portrait: 8–15.
+- Product: 10–20.
+- Low-res/compressed: 8–14; prefer the curve above 20.
+- Above ~25, check highlights and shadows immediately; the ends move first.
+
+### Sky handling
+
+A near-white sky contains whatever gradient the sensor recorded. If it is a uniform bright mist,
+no slider will create cloud detail.
+
+- Lower `highlights` (levels) until the brightest sky sits below the clipping threshold.
+- Keep `tone_whites` close to 1.0 unless the goal is a matte look.
+- Accept that the corner may stay nearly uniform; graying it further does not add information.
+- If the sky is genuinely featureless and the composition allows it, crop or reframe rather than
+  over-processing it.
+
+### Low-resolution and compressed sources
+
+- Prefer tone curves over clarity and contrast.
+- Keep sharpening at 2–4 and clarity at 2–5.
+- Do not add grain to "fix" blockiness; it adds noise on top of noise.
+- The detail ceiling is the file, not the grade. The only real fix is the full-resolution original.
 
 ---
 
-## 22. The 4.5/10 polish: vibrant is a range, not a maximum
+## 6. Color: saturation, vibrance, HSL
 
-The next review scored the corrected grade **4.5/10**. The engine fixes had worked — no false
-color, the lake read as water, the boulder stayed gray — so this round was purely about
-restraint:
+### Saturation vs vibrance
 
-1. foreground grass still looked like neon, not mountain flora;
-2. the high ridge still leaned cyan/aqua instead of atmospheric blue;
-3. clarity/sharpening made compressed foliage and rock edges crunchy.
+| Control | Behavior | Best use | Risk |
+|---|---|---|---|
+| `saturation` | Multiplies every pixel's chroma | Small global lift on a flat file | Clips already-saturated pixels into flat neon blocks |
+| `vibrance` | Weighted toward low-chroma pixels; gated away from near-neutrals | "Make it vibrant" on landscapes, skin, mixed scenes | Too high re-amplifies the exact greens being tamed |
 
-The instinct is to lower a global saturation slider, but that would also flatten the lake and
-the stone. The fixes were all *selective*:
+For a scene that is already vivid, the correct move is often **negative saturation plus targeted
+HSL**, not a vibrance boost. Vibrance is for lifting the under-saturated middle, not for pushing
+an already-saturated subject.
 
-- **Green:** negative saturation (−24) **and** negative luminance (−10), so bright blades darken
-  instead of staying electric while merely losing chroma.
-- **Cyan:** hue rotated **toward blue** (+10) and saturation lowered (−30) only on that family,
-  so the ridge loses its aqua wash without touching the neutral rock. A test that leaned on
-  hue rotation alone (+14, −22) kept a richer lake but reintroduced cyan banding on the ridge;
-  desaturation mattered more than hue for the mountain.
-- **Clarity/sharpness:** cut from 12/6 to **4/2**. On a 195×183 source, `cas` at 12 was
-  inventing micro-contrast inside JPEG blocks.
-- **Vibrance:** 65 → 22. At this chroma level the LUT was re-amplifying exactly the greens being
-  pulled back; low vibrance let the HSL move actually hold.
+### HSL: per-family control
 
-### The revised recipe (delivered as `vibrant_final_v2`)
+`PHOTO_HSV` adjusts hue, saturation and luminance per color family. The families overlap with soft
+Gaussian weights, and the whole adjustment is gated out below ~30% saturation and full above ~50%.
+That gate is deliberate: rock, concrete, haze and compression noise have unstable hue, and a
+per-color LUT would turn their texture into mottled patches.
+
+Hue is a slider: ±100 maps to ±40°. Positive/negative direction depends on the family.
+
+| Family | Hue direction | Saturation | Luminance | When to use | Trap |
+|---|---|---|---|---|---|
+| Red | + toward orange, − toward magenta | −10 to +10 | ±5 | Lips, flowers, brick, fall leaves | Skin redness becomes sunburn |
+| Orange | + toward yellow, − toward red | −5 to +10 | +5 to +15 | Skin, warm stone, autumn, sunset | Too much sat = orange skin |
+| Yellow | + toward green, − toward orange | −10 to 0 | +5 to +20 | Sunlit grass, dry fields, gold light | Lifting too far creates neon |
+| Green | + toward cyan, − toward olive | −30 to −10 | −15 to 0 | Foliage, grass, forest | Over-desaturating turns grass gray |
+| Cyan | + toward blue, − toward green | −30 to −10 | −10 to 0 | Water, haze, distant ridges | Draining the lake while fixing the ridge |
+| Blue | + toward violet, − toward cyan | −5 to +15 | −10 to 0 | Sky, water, shadows | Electric blue shadows |
+| Magenta | + toward red, − toward blue | −15 to +10 | ±5 | Flowers, neon, some skin shadows | Unnatural skin/foliage |
+
+### How to fix the common palette problems
+
+**Neon foliage.** The problem is usually saturation, not hue. Lower `green_saturation` by 15–30,
+lower `green_luminance` by 8–15, and shift `green_hue` slightly negative (toward olive). Do not
+raise yellow luminance at the same time unless the goal is specifically to lift sunlit grass.
+Check that the grass still has tonal variation; dead-flat green is over-correction.
+
+**Cyan ridge or haze.** Shift `cyan_hue` positive (toward blue) by 8–15 and lower
+`cyan_saturation` by 15–30. If the lake was praised, test it after the ridge fix: cyan controls
+both. A hue-rotation-only fix can preserve the lake better but may leave cyan banding on rock; a
+saturation cut cleans the ridge but drains water. Choose based on which element carries the frame.
+
+**Orange skin.** Lower `orange_saturation`, raise `orange_luminance` slightly, and check white
+balance. Warm highlights globally will warm faces first; protect orange before adding more
+warmth. Do not push `orange_hue` toward red to "fix" saturation; that reads as sunburn.
+
+**Dull water.** Raise `blue_saturation` modestly (5–12), lower `blue_luminance` slightly, and keep
+`cyan_saturation` from dropping too far. If the water turns electric, the blue lift is too high.
+
+**Green rock.** This is a gating failure in spirit: low-chroma stone should not be tinted by HSL.
+Check neutral cast and WB first, then confirm `neutral_pixels_pct` is meaningful in `inspect`.
+If the rock is genuinely green from lichen, leave it; not every green is a cast.
+
+### Saturation targets
+
+- Judge saturation **relative to the source**, not against a fixed ideal.
+- If the source mean saturation is already 54 and the grade reads natural at 48, that is a success,
+  not a failure. "Vibrant" means alive, not maximum chroma.
+- Keep neon share (pixels at ≥90% saturation and high value) under ~1%; lower is better on foliage.
+- A global saturation boost above +10 is usually a warning sign on an already-vivid landscape.
+
+---
+
+## 7. Split toning and classic looks
+
+### What split toning does
+
+Split toning puts one hue in the shadows and another in the highlights. The classic is warm
+highlights and cool shadows, because skin and sunlight sit in the orange family while shade and
+sky sit in the blue family. The separation creates depth: warm advances, cool recedes.
+
+### How the wheels behave in this engine
+
+- `hue` (0–360) **rotates** existing hue; it does not add a tint to neutral pixels.
+- `saturation` **scales** existing chroma (1 + sat/100); a neutral pixel stays neutral.
+- `luminance` lifts/lowers that tonal zone.
+- `blending` (0–100, default 50) mixes the tinted LUT back toward identity. Lower = more abrupt
+  zone separation; higher = smoother, potentially muddier.
+- `balance` (−100..100) moves the zone boundaries. Positive widens midtones; negative lets the
+  shadow/highlight zones take more of the frame.
+- `strength` (0–1) is the look dial: effective blend = blending/100 × strength.
+
+Because the wheels rotate and scale rather than tint, a global warmth move belongs in
+`white_balance_temperature`, not in a highlight wheel with saturation. Use the wheels when the
+image already has chroma to rotate; use WB or a LUT when neutral surfaces need a tint.
+
+### Canonical teal-and-orange
+
+| Zone | Hue | Saturation | Luminance | Notes |
+|---|---|---|---|---|
+| Shadows | 200–210° | 10–25 | −5 to 0 | Teal, not green; keep it blue-leaning |
+| Midtones | neutral or 30–40° | 0–8 | 0 | A tiny warm bridge; do not let teal take the skin |
+| Highlights | 35–45° | 10–20 | 0 to +5 | Warm skin and sun; lower sat than shadows |
+| Global | 0 | 0 | 0 | Leave off unless the whole frame needs a unifying tint |
+
+Blending 50–80; balance 0 to +20. Protect neutrals: white shirts, gray concrete and clouds must
+stay neutral, or the image reads as tinted rather than designed.
+
+### Other looks
+
+| Look | Shadows | Highlights | Contrast | When it fits |
+|---|---|---|---|---|
+| Golden hour | Cool blue, low sat | Warm amber, moderate sat | Medium | Backlit portraits, late sun, nostalgia |
+| Moody forest | Deep green-blue, low sat | Soft neutral, low sat | Medium-low | Overcast forest, fog, quiet mood |
+| Bleach bypass | Neutral, lifted blacks | Silvery, desaturated | High | Gritty, overcast, concrete, editorial |
+| Night blue | Deep blue, medium sat | Warm practicals untouched | Medium-high | City night, neon, rain |
+| Autumn dusk | Deep brown/red, low sat | Burnt orange, moderate sat | Medium | Fall foliage, warm/cool sunset |
+| Monochrome | — | — | High | Graphic subjects, texture, architecture |
+| Analogous | One family | Neighboring hue | Low-medium | Soft, cohesive, minimal scenes |
+
+### Restraint
+
+- One side of the split should carry the scene; the other appears only where it matters.
+- If the grade is visible as a "look" before it is visible as an image, reduce strength.
+- The toggle test is mandatory: compare the graded and ungraded frame side by side.
+
+---
+
+## 8. Local control without masks
+
+This engine is global: there are no brush, gradient or subject masks. Local-looking results come
+from **selectivity**, not from spatial masks.
+
+| Goal | Global technique | Why it works |
+|---|---|---|
+| Deepen mountain gullies | Lower `tone_shadows`; `shadows -3..-8` (levels) | Dark pixels are weighted more than bright ones |
+| Lift sunlit grass | `yellow_luminance +10..+20` | The sunlit band is yellow-green; gray rock is untouched |
+| Darken foreground foliage | `green_luminance −8..−15` | Green chroma is gated; neutral stone is not affected |
+| Warm sunlit stone | Small WB warmth; `orange_luminance` modest | Warmth lands on lit, warm-hued surfaces; lake stays cool |
+| Cool the shade | `cyan/blue` hue/saturation; shadows wheel | Cool chroma is concentrated in shade and haze |
+| Separate water from sky | `cyan_hue` toward blue; `blue_saturation` modest | Water and haze sit in cyan; deep sky sits in blue |
+| Add depth without clarity | S-curve on `tone_*` | Luminance separation, not local sharpening |
+
+When a result genuinely requires a mask (a face that must stay warm while the background cools,
+a sky replacement, a localized dodge), do it in an external editor and bring the file back. Do not
+fake a mask with extreme global moves; the rest of the frame pays for it.
+
+---
+
+## 9. Scene playbooks
+
+These are starting points, not laws. Adjust to the source's own palette and light.
+
+### Alpine / lake (neutral stone, cool water, natural greens)
+
+```
+WB 6650–6800 K, tint 0–3
+exposure +0.10 to +0.15 · contrast 14–18
+shadows −3 · highlights −12 to −18
+tone_blacks 0.005 · tone_shadows 0.13 · tone_midtones 0.515
+tone_highlights 0.85 · tone_whites 0.99
+saturation −8 to −10 · vibrance 22–26
+clarity 4–5 · sharpness 2
+HSL: yellow −2 hue / −9 sat / +18 lum
+     green −6 hue / −24 sat / −11 lum
+     cyan +10 hue / −30 sat / −5 lum
+     blue +3 hue / +6 sat / −2 lum
+```
+
+Why: warm the stone without warming the lake; pull green chroma and luminance to keep grass out
+of neon; rotate cyan toward blue and cut its saturation so the ridge reads atmospheric; keep the
+finish soft for a small file.
+
+### Vivid landscape (more punch, still natural)
+
+Increase `vibrance` to 30–40, `contrast` to 18–22, and `clarity` to 6–8 only if the file is large.
+Keep `green_saturation` negative and `cyan_saturation` negative. Add a gentle S-curve rather than
+more global saturation.
+
+### Moody forest
+
+```
+WB neutral or slightly cool
+exposure −0.10 to 0 · contrast 12–16
+tone_shadows 0.11–0.13 · tone_highlights 0.80–0.84
+saturation −10 to −15 · vibrance 10–18
+HSL: green −30 to −20 sat / −15 to −8 lum / hue toward olive
+     cyan −20 sat (mist)
+clarity 3–5 · sharpness 2–3
+```
+
+### Desert / canyon
+
+```
+WB 6800–7200 K · exposure +0.10
+contrast 16–22 · highlights −10 to −20
+saturation −5 · vibrance 20–30
+HSL: orange +5 lum / +5 sat; yellow +8 lum; blue −5 lum / +5 sat
+clarity 5–7 (large file) · sharpness 3–4
+```
+
+### Snow / winter
+
+```
+WB 6400–6600 K (keep a slight cool cast) · exposure +0.15 to +0.30
+contrast 8–12 · highlights −20 to −30 · shadows +5 to +10
+tone_whites 0.97–0.99 (do not flatten the snow)
+saturation −5 · vibrance 10–15
+HSL: blue −5 lum / +5 sat (shade); cyan −10 sat
+clarity 2–4 · sharpness 2
+```
+
+### Coast / sea
+
+```
+WB 6500–6700 K · exposure +0.05
+contrast 14–18 · highlights −10 to −18
+vibrance 20–30 · saturation −5
+HSL: cyan +8 hue / −15 sat; blue +8 sat / −5 lum
+clarity 3–5 · sharpness 2–3
+```
+
+### Golden-hour portrait
+
+```
+WB 7000–7500 K · exposure +0.10
+contrast 10–14 · highlights −10
+tone_shadows 0.14 · tone_highlights 0.86
+vibrance 15–25 · saturation −5
+HSL: orange +8 to +12 lum / −3 sat; yellow +5 lum; blue −5 lum
+clarity 2–3 · sharpness 2–4
+```
+
+Protect skin first: if the face turns orange, lower `orange_saturation` before lowering global
+warmth.
+
+### Studio / natural portrait
+
+```
+WB neutral (6500 K, tint 0)
+exposure per subject · contrast 8–12
+highlights −5 to −10 · shadows +3 to +8
+vibrance 8–15 · saturation 0
+HSL: orange +5 lum / −5 sat; red −5 sat
+clarity 0–2 · sharpness 3–5
+```
+
+### Night / city
+
+```
+WB 3200–4500 K or keep the mixed cast
+exposure −0.10 to +0.20 (protect practicals)
+contrast 14–20 · highlights −15 to −25 · shadows −5 to +5
+saturation −5 · vibrance 15–25
+HSL: blue +5 sat / −5 lum (shade); orange +5 lum (practicals)
+clarity 2–4 · sharpness 2–3 · grain 3–8
+```
+
+### Product / food
+
+```
+WB neutral · exposure per highlight
+contrast 10–16 · highlights −15 to −25
+saturation +5 to +10 · vibrance 10–20
+clarity 4–6 · sharpness 4–6
+```
+
+Keep the background neutral and the specular highlights clean; colored gels are a lighting
+decision, not a grading fix.
+
+### Monochrome
+
+Set `saturation −100` (or use a black-and-white conversion externally), then build separation
+with `contrast`, `tone_*`, `clarity` and `grain`. Color filters (red/orange for skin, blue for
+fog) are a shooting decision; do not fake them with HSL after desaturation.
+
+---
+
+## 10. Finishing: clarity, sharpness, grain, output
+
+### Clarity
+
+`clarity` is Contrast Adaptive Sharpen (`cas`): local midtone contrast with fewer halos than a
+fixed unsharp kernel.
+
+- Landscape: 3–6.
+- Portrait: 0–3.
+- Product: 4–6.
+- Low-res/compressed: 2–5; above 6 starts amplifying blocks.
+- Do not use clarity to fix flat midtones; use the tone curve. Clarity adds edge contrast, not
+  tonal separation.
+
+### Sharpness
+
+`sharpness` is `unsharp` (lx=3, ly=3). **The default is 25**, which is strong for a small file.
+Always set it explicitly.
+
+- Low-res/compressed: 2–4.
+- Full-res landscape: 3–6.
+- Portrait: 3–5.
+- Product: 4–8.
+- Check at 100% for halos on high-contrast edges (horizon, branches, roof lines).
+
+### Grain
+
+`grain` maps to `noise=alls=N` (0–50).
+
+- 2–5: subtle texture, can mask mild banding.
+- 6–12: visible film character.
+- Above 12: stylistic; it will soften detail and should not be used to hide compression blocks.
+
+### Output
+
+- Grade in 16-bit; encode once at the end.
+- PNG/TIFF for the master; JPEG q2 4:4:4 for delivery when the platform accepts it.
+- Avoid repeated JPEG round-trips; each one erodes fine foliage and rock texture.
+- Keep the final resolution; do not upscale to fake detail.
+
+---
+
+## 11. Quality control: measure, don't guess
+
+`photo-grading inspect IMAGE --json` reports:
+
+- luma percentiles and mean;
+- highlight/shadow clipping percentages;
+- mean and p95 saturation;
+- neon share (high saturation + high value);
+- hue-family distribution;
+- neutral-pixel cast (R−G, B−G) and the neutral share;
+- conservative warnings.
+
+### Reading the numbers
+
+| Metric | Healthy range | What a bad value means |
+|---|---|---|
+| Highlight clipping | <0.1%, ideally 0% | Blown sky/rock; recover with `highlights`, not `tone_whites` |
+| Shadow clipping | <1% | Crushed detail; lift `shadows` or `tone_shadows` |
+| Neutral cast R−G / B−G | within ±4–5 of zero | Green/magenta or blue/yellow cast on neutrals |
+| Mean saturation | source-relative; not above source by >5–8 unless intended | Over-saturated grade |
+| Neon share | <1% | Flat neon blocks in foliage/water |
+| p95 saturation | <90% | Pushing into clipping territory |
+| Hue families | matches the scene | Unexpected magenta/cyan dominance = cast or HSL error |
+| Region luma std | compare variants; +1–2 is meaningful | Flat midtones or lost separation |
+
+### Region checks that catch what the whole frame hides
+
+Measure small crops, not just the full image:
+
+- **Mountain/slope:** luma std, p10/p90. Rising std = more depth; falling std = flatter.
+- **Pine/shadow band:** p10. Falling p10 = deeper shadows.
+- **Sunlit grass:** p90. Rising p90 = lifted highlights; if saturation also rises, watch neon.
+- **Sky:** mean, p90, max, and share above 245. A sky can be unclipped and still read blown if it
+  sits at 236–243 with no variation.
+- **Boulder/neutral:** R−B and R−G. Warming should raise R−B slightly; a green shift is a cast.
+- **Lake/water:** saturation and hue. Fixing the ridge can drain the lake; check both.
+
+### Comparison method
+
+1. Same crop, same zoom, same display.
+2. Toggle between variants; do not compare from memory.
+3. Check the grayscale version for luminance separation.
+4. Check skin, sky, water and neutral stone first.
+5. Take a break before the final judgment; color fatigue exaggerates saturation and warmth.
+
+### Symptom → cause → fix
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Neon green foliage | Green saturation/vibrance too high | `green_saturation −15..−30`, `green_luminance −8..−15` |
+| Cyan/aqua ridge | Cyan hue too green or saturation too high | `cyan_hue +8..+15`, `cyan_saturation −15..−30` |
+| Orange skin | Global warmth + orange saturation | Lower `orange_saturation`, raise `orange_luminance`, check WB |
+| Flat midtones | Not enough luminance separation | S-curve on `tone_*`; do not reach for clarity |
+| Crunchy edges | Clarity/sharpness too high for the file | Lower both; use tone curve for depth |
+| Clipped sky | Highlights pushed by exposure/WB | Lower `highlights` (levels); keep `tone_whites` near 1 |
+| Flat white sky | `tone_whites` used as a compressor | Restore `tone_whites` to 0.98–1.0; recover with levels |
+| Gray/dead grass | Over-desaturated green | Raise `green_saturation` slightly; check luminance |
+| Electric blue shadows | Blue saturation too high | Lower `blue_saturation`; shift hue toward cyan |
+| Muddy split tone | Blending too high or both zones saturated | Lower blending/saturation; keep midtones neutral |
+| Banding in gradients | 8-bit pipeline or heavy curves | 16-bit intermediates; gentle curve; light grain |
+| Halos on edges | Unsharp too strong | Lower `sharpness`; prefer `clarity` at low values |
+| Green cast on rock | HSL touching low-chroma pixels / WB | Check neutral cast; rely on the 30% chroma gate |
+
+---
+
+## 12. Parameter reference
+
+### PHOTO_CORRECTION
+
+| Parameter | Range | Default | Typical | Notes |
+|---|---|---|---|---|
+| `white_balance_temperature` | 2500–10000 | 6500 | 6500–7000 | Higher = warmer |
+| `white_balance_tint` | −100..100 | 0 | −5..+5 | Positive = magenta |
+| `exposure` | −10..10 | 0 | −0.3..+0.3 | Uniform lift |
+| `contrast` | −100..100 | 0 | 8–20 | Linear around mid-gray |
+| `highlights` | −100..100 | 0 | −10..−25 | Soft levels band; recovery |
+| `shadows` | −100..100 | 0 | −8..+8 | Soft levels band |
+| `blacks` | −100..100 | 0 | −5..+5 | Black point |
+| `whites` | −100..100 | 0 | −5..+5 | White point |
+| `saturation` | −100..100 | 0 | −12..+10 | Global multiplier |
+| `vibrance` | −100..100 | 0 | 10–30 | Low-chroma weighted |
+| `clarity` | 0–100 | 0 | 2–6 | CAS local contrast |
+| `sharpness` | 0–100 | 25 | 2–5 | Always set explicitly |
+| `grain` | 0–50 | 0 | 0–8 | `noise=alls` |
+| `tone_blacks` | 0–2 | 0.00 | 0.00–0.02 | Anchor at L=0 |
+| `tone_shadows` | 0–2 | 0.15 | 0.12–0.15 | Anchor at L=0.15 |
+| `tone_midtones` | 0–2 | 0.50 | 0.49–0.52 | Anchor at L=0.50 |
+| `tone_highlights` | 0–2 | 0.85 | 0.82–0.87 | Anchor at L=0.85 |
+| `tone_whites` | 0–2 | 1.00 | 0.97–1.00 | Anchor at L=1.00; ceiling |
+
+### PHOTO_HSV
+
+| Parameter | Range | Notes |
+|---|---|---|
+| `{family}_hue` | −100..100 | ±40°; direction depends on family |
+| `{family}_saturation` | −100..100 | Soft headroom; no channel clip |
+| `{family}_luminance` | −100..100 | Soft headroom; lifts/darkens that family |
+
+Families: red, orange, yellow, green, cyan, blue, magenta. Gated below 30% saturation, full at 50%.
+
+### PHOTO_GRADING
+
+| Parameter | Range | Default | Notes |
+|---|---|---|---|
+| `shadows_hue` / `midtones_hue` / `highlights_hue` / `global_hue` | 0–360 | 0 | Rotates existing hue |
+| `*_saturation` | 0–100 | 0 | Scales existing chroma |
+| `*_luminance` | −100..100 | 0 | Lifts/lowers that zone |
+| `blending` | 0–100 | 50 | Higher = smoother, potentially muddier |
+| `balance` | −100..100 | 0 | Positive widens midtones |
+| `strength` | 0–1 | 1.0 | Look dial |
+
+### Canonical natural-alpine recipe (reference)
 
 ```json
 {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source", "parameters": {
-  "white_balance_temperature": 6650, "white_balance_tint": 4,
-  "exposure": 0.12, "contrast": 14, "saturation": -10, "vibrance": 22,
-  "clarity": 4, "sharpness": 2,
-  "tone_blacks": 0.01, "tone_shadows": 0.15, "tone_midtones": 0.51,
-  "tone_highlights": 0.82, "tone_whites": 0.95}}
+  "white_balance_temperature": 6800, "white_balance_tint": 2,
+  "exposure": 0.13, "contrast": 16, "saturation": -10, "vibrance": 24,
+  "clarity": 5, "sharpness": 2,
+  "shadows": -3, "highlights": -18,
+  "tone_blacks": 0.005, "tone_shadows": 0.13, "tone_midtones": 0.515,
+  "tone_highlights": 0.85, "tone_whites": 0.99}}
 {"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr", "parameters": {
-  "yellow_hue": -2, "yellow_saturation": -4,
-  "green_hue": -6, "green_saturation": -24, "green_luminance": -10,
+  "yellow_hue": -2, "yellow_saturation": -9, "yellow_luminance": 18,
+  "green_hue": -6, "green_saturation": -24, "green_luminance": -11,
   "cyan_hue": 10, "cyan_saturation": -30, "cyan_luminance": -5,
   "blue_hue": 3, "blue_saturation": 6, "blue_luminance": -2}}
 ```
 
-OBSERVED on the real photo (PNG artifact; JPEG q2 4:4:4 adds ~0.03% highlight clipping):
-
-| metric | source | v8_f (4.5/10) | v2 |
-|---|---|---|---|
-| highlight clipping | 5.49% | 0.00% | **0.00%** |
-| shadow clipping | 0.03% | 0.61% | 0.42% |
-| neutral cast R-G / B-G | -8.6 / +3.1 | -5.5 / -1.9 | **-6.4 / -1.9** |
-| mean saturation | 54.1 | 59.0 | 47.6 |
-| neon share (≥90% sat) | 4.72% | 4.52% | **0.15%** |
-| grass L/R saturation | 63.6 / 62.3 | 69.0 / 67.6 | **59.7 / 58.0** |
-| ridge saturation | 61.9 | 68.8 | **50.6** |
-| lake saturation | 70.7 | 75.0 | 59.0 |
-
-The mean saturation is now **below the source**, which is the honest consequence of the brief:
-the source's own grass was already at the edge, so a "vibrant" grade that reads natural has to
-sit under it. The neon share fell from 4.5% to 0.15% — the metric moved in the same direction
-as the reviewer's complaint, not just the slider.
-
-### Lessons worth keeping
-
-1. **Vibrant is a range, not a maximum.** Past a point, more chroma stops reading as "alive"
-   and starts reading as "processed". The source itself can be the ceiling.
-2. **Fix the offending family, not global saturation.** The lake and stone were not the problem;
-   a global cut would have punished them for the grass.
-3. **Use luminance with saturation when taming foliage.** Desaturating bright green leaves it
-   light and chalky; darkening it makes it read as vegetation.
-4. **On small sources, sharpen less than feels right.** Clarity is not free: at 195 px it
-   amplifies compression blocks into "detail".
-5. **Re-test the praised element after every targeted fix.** Cutting cyan for the ridge also
-   drained the lake; a hue-rotation variant restored the lake but brought the ridge cast back.
-   The winner was the one that kept the complaint fixed.
+Measured on a 195×183 alpine source: 0% highlight clipping, 0.6% shadow clipping,
+neutral cast −5.2/−2.3, mean saturation 48, neon 0.07%. The recipe is a starting point; the
+source's own palette determines the final values.
 
 ---
 
-## 23. The 6.5/10 pass: adding depth without adding crunch
+## 13. Engine invariants: why grades fail
 
-The v2 grade was scored **6.5/10** — the first version to read as a plausible alpine scene.
-The remaining complaints were structural rather than hue mistakes:
+These are not style opinions. They are properties of the pipeline that determine whether a
+recipe survives execution.
 
-1. flat midtones: the gullies and pine band had lost separation after the chroma cuts;
-2. a near-flat white sky with no cloud gradient;
-3. soft/blocky fine texture, which is the source's 195×183 resolution showing through.
+### Color math
 
-### What was changed
+- **Cube LUT order is red-fastest, blue-slowest** (Adobe Cube 1.0). A transposed axis turns hue
+  and saturation moves into false-color orange/blue blocks. Every builder uses one iterator.
+- **HSV sector math must be round-trip correct.** A scrambled sector table corrupts every hue
+  rotation, wheel and HSL move.
+- **White-balance gains are normalized and black-preserving.** Gains are relative to green, the
+  largest gain is exactly 1 (no channel clip), and black stays black. Adding headroom to every
+  channel turns dark pixels into colored speckles.
+- **HSL and vibrance are chroma-gated.** Below ~30% saturation they are identity; full at ~50%.
+  This keeps rock, concrete, haze and compression noise out of the color math.
+- **Saturation and luminance use soft headroom.** Lifts approach white asymptotically and cuts
+  approach black asymptotically, so a strong move cannot hard-clip a channel into a flat block.
 
-- **Depth:** a gentle S-curve on the tone anchors (`tone_shadows 0.13`, `tone_midtones 0.515`,
-  `tone_highlights 0.85`) plus `shadows -3` on the soft levels band. This darkened the gullies
-  and pine band while leaving the sunlit tops alone.
-- **Sunlit grass:** `yellow_luminance +18` to lift the mid-slope band, with
-  `yellow_saturation -9` so the lift did not reintroduce neon (the v2 lesson).
-- **Warmth:** `white_balance_temperature` 6650 → **6800** + tint 2. That is the +3..+5 slider
-  range the reviewer asked for; it warms the sunlit boulder and slope edges against the cool
-  lake, and moves the neutral cast *toward* zero.
-- **Sky:** the first attempt used `tone_whites 0.92`, which recovered clipping but compressed
-  the sky into a flat band (luma std fell from 5.2 to 2.2). The fix was to keep the tone-curve
-  shoulder open (`tone_whites 0.99`) and compress only the top end with the levels band
-  (`highlights -12`), which preserves the gradient and still reports 0.006% clipping.
-- **Texture:** clarity stayed at 5 and sharpness at 2. The depth came from the curve, not from
-  local-contrast sharpening, so the compressed foliage did not get crunchier.
+### Tone math
 
-OBSERVED on the 195×183 source (PNG master):
+- **The tone curve adds a luma delta to all channels, then clamps.** Hue relationships are
+  preserved, but an individual channel can hit its ceiling before luma does. Check channel clipping.
+- **`tone_whites` is a ceiling, not a recovery tool.** Lowering it compresses the top range toward
+  a flat value. Use `highlights` (levels) for recovery.
+- **Levels bands use smoothstep weights.** A hard threshold leaves a visible step where the band
+  starts. If a band looks like a line across the image, the math regressed to a hard mask.
 
-| metric | source | v2 (6.5/10) | v3 |
-|---|---|---|---|
-| highlight clipping | 5.49% | 0.00% | **0.006%** |
-| shadow clipping | 0.03% | 0.42% | 0.61% |
-| neutral cast R-G / B-G | -8.6 / +3.1 | -6.4 / -1.9 | **-5.2 / -2.2** |
-| mean saturation | 54.1 | 47.6 | 48.2 |
-| neon share (≥90% sat) | 4.72% | 0.15% | **0.07%** |
-| mountain luma std | 19.8 | 22.4 | **23.8** |
-| pine-band luma p10 | 61.2 | 46.2 | **40.7** |
-| sky luma std | 6.8 | 5.2 | **6.1** |
-| grass band p10 / p90 | 72.0 / 166.1 | 58.1 / 169.4 | **51.7 / 171.1** |
-| boulder R-B (warmth) | 13.6 | 14.0 | **16.4** |
+### Execution
 
-The S-curve is measurable in both directions: the pine band's p10 dropped 5.5 points (deeper
-shadows), the sunlit grass p90 rose 1.7 points, and the mountain's luma standard deviation rose
-from 22.4 to 23.8. The sky recovered gradient *and* stayed clean because highlight compression
-moved from the hard white anchor to the soft levels band.
+- **Operations form a DAG.** Each op reads `source` or `op:<id>`; branches are independent. A
+  silently linear chain grades a second branch on top of the first.
+- **Intermediates are 16-bit PNG.** Heavy curves on 8-bit data posterize. The requested output
+  format is encoded exactly once at the end.
+- **Reuse identity hashes the actual input artifact, the engine version and the LUT builder
+  fingerprint.** Hashing the original source lets a changed upstream op reuse a stale downstream
+  file.
+- **`sharpness` defaults to 25.** If a recipe omits it, the file is sharpened more than intended.
+  Set it explicitly in every request.
+- **JPEG delivery is q2 4:4:4.** Chroma subsampling smears fine foliage; 4:4:4 keeps color detail.
+  The master stays PNG/TIFF.
 
-### Full-resolution source
+### When a grade "doesn't apply"
 
-No higher-resolution copy of this photo exists on the machine (Desktop, Downloads, Pictures,
-and the rest of the user profile were scanned: 9,459 images, none matching). The 195×183 file is
-the only source. The recipe is resolution-independent, so `request_deliver_v3.json` can be run
-unchanged against the uncompressed original the moment it is available; the `clarity`/`sharpness`
-values are intentionally conservative for that reason.
-
-### Lessons worth keeping
-
-1. **A white-point anchor is a compressor.** `tone_whites < 1` lowers the ceiling and flattens
-   every bright gradient; use it only when the goal is to mute highlights, not to recover them.
-2. **Recover highlights with a soft band, not a hard ceiling.** The levels LUT's `highlights`
-   uses `_soft_delta`, so the top end compresses proportionally and keeps its shape.
-3. **Depth is a curve, not clarity.** On a small source, an S-curve adds separation without
-   amplifying JPEG blocks; local-contrast sharpening adds both.
-4. **Warm the light, not the whole frame.** A small WB shift warms the sunlit stone while the
-   lake stays cool; a split-tone would be the next step on a full-resolution file.
-5. **Check the neutral cast after a warmth move.** Warming reduces the red deficit but can
-   deepen the blue deficit; v3 trades +1.2 R-G for -0.3 B-G, which is the right direction.
+| Observation | Check |
+|---|---|
+| Colors look transposed/orange-blue | LUT axis order |
+| A hue rotation produces psychedelic colors | HSV sector table |
+| Dark pixels have colored speckles | WB LUT black preservation |
+| The second branch looks double-graded | Operation `input` wiring / DAG |
+| Re-running after a code fix changes nothing | Reuse identity / cache |
+| The same recipe looks different on another file | Source gamut, bit depth, resolution |
+| The sky is flat after recovery | `tone_whites` used as a compressor |
+| The grass is gray after taming | Green saturation/luminance over-cut |
 
 ---
 
-## 24. The 7/10 pass: lower the sky ceiling, then stop
+## 14. Glossary
 
-The v3 grade was scored **7/10**. The reviewer called the color and tonal progression the
-cleanest yet and explicitly asked for **one** more move:
+- **Cast** — an unwanted global tint, usually measured on near-neutral pixels.
+- **Chroma** — color intensity independent of brightness; saturation in HSV terms.
+- **Clipping** — a channel or luma hitting 0 or its maximum; information is lost.
+- **Correction** — restoring neutral, exposure and tone to match the scene.
+- **Grading** — deliberately moving away from neutral toward a mood or style.
+- **HSL** — hue, saturation, luminance; per-color-family adjustment.
+- **LUT** — a lookup table mapping input RGB to output RGB; used for looks and calibration.
+- **Neon** — high-saturation, high-value pixels that read as artificial color.
+- **Neutral pixel** — low-saturation pixel used to judge white balance.
+- **Split toning** — different hues in shadows and highlights.
+- **S-curve** — contrast curve that darkens shadows and brightens highlights.
+- **Tone curve** — mapping of input luminance to output luminance at fixed anchors.
+- **Vibrance** — saturation weighted toward low-chroma pixels, with neutrals protected.
 
-1. pull the brightest sky/cloud whites down slightly;
-2. then keep grading hands-off, because further contrast or saturation would degrade a
-   195×183, heavily compressed source.
+---
 
-That is exactly what was done: `highlights` on the soft levels band moved from **-12 to -18**.
-Nothing else changed — not contrast, not saturation, not clarity, not the HSL families.
+## 15. References
 
-### Measured sky (PNG master)
+The technique in this guide is consistent with the following sources; the implementation details
+are specific to this skill.
 
-| metric | v3 (7/10) | v4 |
-|---|---|---|
-| sky mean luma | 236.6 | **230.8** |
-| sky p90 luma | 243.0 | **235.0** |
-| sky max luma | 243.0 | **236.2** |
-| pixels ≥245 luma | 0.0% | **0.0%** |
-| highlight clipping | 0.006% | **0.000%** |
-| mountain luma std | 23.8 | **23.8** (unchanged) |
-| pine-band p10 | 40.7 | **40.7** (unchanged) |
-| grass band p90 | 171.1 | **171.1** (unchanged) |
-| neutral cast R-G / B-G | -5.2 / -2.2 | **-5.2 / -2.3** |
-| neon share | 0.073% | **0.073%** |
-
-The mountain and foreground rows are deliberately identical: this was a sky-only move.
-
-### What lowering the ceiling can and cannot do
-
-The upper-right corner had no cloud structure to recover; its luma std is only ~4.3 in both v3
-and v4. Pulling the whites down prevents the corner from reading as pure white and restores a
-little atmospheric blue, but it cannot invent gradient that the compressed source never
-recorded. The honest ceiling here is the source resolution, not the grade.
-
-### Lessons worth keeping
-
-1. **Lower the ceiling, not the whole image.** One soft-band highlight move fixes a bright sky
-   without touching the mountain, lake or grass; a global exposure cut would have dimmed them all.
-2. **Flat white is not always clipping.** v3 had 0.006% clipped pixels but still *read* as blown
-   because the corner sat at 236–243 with almost no variation. Read the percentile spread, not
-   just the clip count.
-3. **When the reviewer says stop, stop.** The second half of the 7/10 note was a warning: on this
-   file, more contrast or saturation would trade color for texture. Change only the named defect.
-4. **A low-resolution source has a hard detail ceiling.** No LUT, clarity value or sharpening
-   radius can recover lichen or grass blades that were never sampled. The only real fix is the
-   uncompressed original.
+- Adobe — Color Grading panel documentation and Camera Raw workflow guides.
+- Fstoppers — cinematic orange-and-teal grading workflow.
+- Impact Photography — three-way wheel values and blending/balance guidance.
+- Markus Hagner Photography — restrained cinematic grading for portraits.
+- Skylum — color correction vs grading, neutral protection, film-look attributes.
+- PHLEARN — HSL and color mixer workflows.
+- PhotographyIcon — RGB vs RYB wheels, complementary contrast, warm/cool depth.
+- DaVinci Resolve colorist workflows — corrections vs look development, split toning, LUT
+  strength, "do more with less".
+- Lightroom color grading tutorials — foundation-first workflow, blending/balance, color fatigue,
+  variation comparison.
