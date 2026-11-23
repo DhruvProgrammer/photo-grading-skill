@@ -260,7 +260,7 @@ python -m pytest -q       # 34 unit + validation tests
 | [docs/decisions.md](docs/decisions.md) | design decisions (ADRs) |
 | [docs/security.md](docs/security.md) | full enforcement table |
 | [docs/testing.md](docs/testing.md) | test coverage |
-| [knowledge.md](knowledge.md) | photo color grading research dump (Teal & Orange, wheels, curves, HSL, complementary colors, ...) |
+| [knowledge.md](knowledge.md) | color grading technique guide: correction order, tone and highlight recovery, HSL per family, split toning, scene playbooks, QA thresholds, engine invariants |
 
 ## Relationship to the other skills
 
