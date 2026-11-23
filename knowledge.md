@@ -698,3 +698,77 @@ part that matters. The boulder stayed gray, the lake deepened, the sky kept its 
    the first heavy curve, when it becomes posterization.
 7. **Cache keys must include the engine.** Otherwise a fixed bug keeps producing its old
    output from a stale intermediate.
+
+---
+
+## 22. The 4.5/10 polish: vibrant is a range, not a maximum
+
+The next review scored the corrected grade **4.5/10**. The engine fixes had worked — no false
+color, the lake read as water, the boulder stayed gray — so this round was purely about
+restraint:
+
+1. foreground grass still looked like neon, not mountain flora;
+2. the high ridge still leaned cyan/aqua instead of atmospheric blue;
+3. clarity/sharpening made compressed foliage and rock edges crunchy.
+
+The instinct is to lower a global saturation slider, but that would also flatten the lake and
+the stone. The fixes were all *selective*:
+
+- **Green:** negative saturation (−24) **and** negative luminance (−10), so bright blades darken
+  instead of staying electric while merely losing chroma.
+- **Cyan:** hue rotated **toward blue** (+10) and saturation lowered (−30) only on that family,
+  so the ridge loses its aqua wash without touching the neutral rock. A test that leaned on
+  hue rotation alone (+14, −22) kept a richer lake but reintroduced cyan banding on the ridge;
+  desaturation mattered more than hue for the mountain.
+- **Clarity/sharpness:** cut from 12/6 to **4/2**. On a 195×183 source, `cas` at 12 was
+  inventing micro-contrast inside JPEG blocks.
+- **Vibrance:** 65 → 22. At this chroma level the LUT was re-amplifying exactly the greens being
+  pulled back; low vibrance let the HSL move actually hold.
+
+### The revised recipe (delivered as `vibrant_final_v2`)
+
+```json
+{"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source", "parameters": {
+  "white_balance_temperature": 6650, "white_balance_tint": 4,
+  "exposure": 0.12, "contrast": 14, "saturation": -10, "vibrance": 22,
+  "clarity": 4, "sharpness": 2,
+  "tone_blacks": 0.01, "tone_shadows": 0.15, "tone_midtones": 0.51,
+  "tone_highlights": 0.82, "tone_whites": 0.95}}
+{"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr", "parameters": {
+  "yellow_hue": -2, "yellow_saturation": -4,
+  "green_hue": -6, "green_saturation": -24, "green_luminance": -10,
+  "cyan_hue": 10, "cyan_saturation": -30, "cyan_luminance": -5,
+  "blue_hue": 3, "blue_saturation": 6, "blue_luminance": -2}}
+```
+
+OBSERVED on the real photo (PNG artifact; JPEG q2 4:4:4 adds ~0.03% highlight clipping):
+
+| metric | source | v8_f (4.5/10) | v2 |
+|---|---|---|---|
+| highlight clipping | 5.49% | 0.00% | **0.00%** |
+| shadow clipping | 0.03% | 0.61% | 0.42% |
+| neutral cast R-G / B-G | -8.6 / +3.1 | -5.5 / -1.9 | **-6.4 / -1.9** |
+| mean saturation | 54.1 | 59.0 | 47.6 |
+| neon share (≥90% sat) | 4.72% | 4.52% | **0.15%** |
+| grass L/R saturation | 63.6 / 62.3 | 69.0 / 67.6 | **59.7 / 58.0** |
+| ridge saturation | 61.9 | 68.8 | **50.6** |
+| lake saturation | 70.7 | 75.0 | 59.0 |
+
+The mean saturation is now **below the source**, which is the honest consequence of the brief:
+the source's own grass was already at the edge, so a "vibrant" grade that reads natural has to
+sit under it. The neon share fell from 4.5% to 0.15% — the metric moved in the same direction
+as the reviewer's complaint, not just the slider.
+
+### Lessons worth keeping
+
+1. **Vibrant is a range, not a maximum.** Past a point, more chroma stops reading as "alive"
+   and starts reading as "processed". The source itself can be the ceiling.
+2. **Fix the offending family, not global saturation.** The lake and stone were not the problem;
+   a global cut would have punished them for the grass.
+3. **Use luminance with saturation when taming foliage.** Desaturating bright green leaves it
+   light and chalky; darkening it makes it read as vegetation.
+4. **On small sources, sharpen less than feels right.** Clarity is not free: at 195 px it
+   amplifies compression blocks into "detail".
+5. **Re-test the praised element after every targeted fix.** Cutting cyan for the ridge also
+   drained the lake; a hue-rotation variant restored the lake but brought the ridge cast back.
+   The winner was the one that kept the complaint fixed.
