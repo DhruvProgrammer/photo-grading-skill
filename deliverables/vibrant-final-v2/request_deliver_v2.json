@@ -1,0 +1,26 @@
+{
+  "schema": "photo-grading/request@1",
+  "project": {
+    "project_id": "vibrant-final-v2",
+    "source": {"source_id": "photo.png", "path": "photo.png"},
+    "operations": [
+      {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source",
+       "parameters": {
+         "white_balance_temperature": 6650, "white_balance_tint": 4,
+         "exposure": 0.12, "contrast": 14, "saturation": -10, "vibrance": 22,
+         "clarity": 4, "sharpness": 2,
+         "tone_blacks": 0.01, "tone_shadows": 0.15, "tone_midtones": 0.51,
+         "tone_highlights": 0.82, "tone_whites": 0.95
+       }},
+      {"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr",
+       "parameters": {"yellow_hue": -2, "yellow_saturation": -4,
+                      "green_hue": -6, "green_saturation": -24, "green_luminance": -10,
+                      "cyan_hue": 10, "cyan_saturation": -30, "cyan_luminance": -5,
+                      "blue_hue": 3, "blue_saturation": 6, "blue_luminance": -2}}
+    ],
+    "outputs": [
+      {"output_id": "final_png", "operation": "op:hsl", "path": "vibrant_final_v2.png", "format": "png"},
+      {"output_id": "final_jpg", "operation": "op:hsl", "path": "vibrant_final_v2.jpg", "format": "jpg"}
+    ]
+  }
+}

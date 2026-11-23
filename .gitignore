@@ -11,6 +11,8 @@ dist/
 *.tiff
 *.webp
 !assets/*.png
+!deliverables/**/*.png
+!deliverables/**/*.jpg
 !brand/*.png
 !assets/logo.png
 !brand/app-icon*.png
