@@ -50,7 +50,7 @@ Typed operations · Validated photos · Full provenance · Real measurements (OB
 
 | | |
 |---|---|
-| **Does** | execute `PHOTO_GRADING` (3-way wheels: shadows/midtones/highlights/global with hue, saturation, luminance + blending + balance), `PHOTO_CORRECTION` (white balance, exposure, contrast, levels, sharpness), `PHOTO_LUT_APPLY` (3D `.cube` LUT), as a typed operation graph on top of FFmpeg, with output validation and provenance |
+| **Does** | execute `PHOTO_GRADING` (3-way wheels: shadows/midtones/highlights/global with hue, saturation, luminance + blending + balance), `PHOTO_CORRECTION` (white balance, exposure, contrast, levels, vibrance, tone curve, sharpness, clarity, grain), `PHOTO_HSV` (per-hue-family HSL), `PHOTO_LUT_APPLY` (3D `.cube` LUT), as a typed operation DAG on top of FFmpeg, with output validation and provenance; `inspect` reports objective pixel statistics so a result can be checked without eyeballing |
 | **Does not** | decide *which* color treatment or look to apply, judge a photo "cinematic", auto-select a LUT or correction values, auto-correct color (white balance takes explicit temperature/tint), invent values, run `ffmpeg` filters directly, accept a command, argv or filter string |
 
 That split is the whole design, and it is what makes the skill robust: **the caller (an AI
@@ -105,7 +105,7 @@ reuses the intermediate (`"reused": true`).
 ```mermaid
 flowchart LR
     A["agent or user\nchooses the look: wheels\n+ blending + balance"] -->|"photo-grading/request@1"| B["photo-grading-skill\nexecutes, typed"]
-    B -->|"python scripts, lut3d, eq, hue, unsharp, ffprobe"| C["FFmpeg / FFprobe"]
+    B -->|"python scripts, lut3d, eq, unsharp, cas, noise, ffprobe"| C["FFmpeg / FFprobe"]
     C --> D["ffmpeg runs on the photo"]
 ```
 
@@ -126,8 +126,9 @@ Every box is mechanical; the only judgement call (the look) already happened ups
 | Operation | Purpose | Parameters |
 |---|---|---|
 | `PHOTO_GRADING` | 3-way Color Grading wheels | `shadows_hue`, `shadows_saturation`, `shadows_luminance`, `midtones_hue`, `midtones_saturation`, `midtones_luminance`, `highlights_hue`, `highlights_saturation`, `highlights_luminance`, `global_hue`, `global_saturation`, `global_luminance`, `blending` (0-100, default 50), `balance` (-100..100, default 0) |
-| `PHOTO_CORRECTION` | Base corrections | `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100, default 0), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `sharpness` (0..100, default 25) |
-| `PHOTO_LUT_APPLY` | Apply a 3D `.cube` LUT | `lut_path` (required) |
+| `PHOTO_CORRECTION` | Base corrections | `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100, default 0), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `vibrance` (-100..100), `sharpness` (0..100, default 25), `clarity` (0..100), `grain` (0..50), `tone_blacks`/`tone_shadows`/`tone_midtones`/`tone_highlights`/`tone_whites` (0..2) |
+| `PHOTO_HSV` | Per-hue-family HSL | `red_*`/`orange_*`/`yellow_*`/`green_*`/`cyan_*`/`blue_*`/`magenta_*` with `_hue` (-100..100 = -40..40°), `_saturation` (-100..100), `_luminance` (-100..100) |
+| `PHOTO_LUT_APPLY` | Apply a 3D `.cube` LUT | `lut_path` (required), `strength` (0..1) |
 | `WHITE_BALANCE` *(alias)* | White balance | `white_balance_temperature` + `white_balance_tint`; resolved to `PHOTO_CORRECTION` at validation |
 
 ### Wheel semantics
@@ -158,13 +159,16 @@ Each wheel carries a **hue** (color direction), **saturation** (how strong) and
 ## Deterministic execution
 
 Every operation gets an identity — `sha256` over canonical JSON of `{type, parameters,
-input identity, tool versions}` — computed before anything runs. Two things follow:
+input hash, tool versions, skill version, pipeline fingerprint}` — computed before anything
+runs. Two things follow:
 
 - **Reuse.** Re-running the same request with the same input reuses the intermediate
   instead of re-encoding (a rerun that deletes the output file just re-copies the reused
-  intermediate back).
+  intermediate back). The identity hashes the operation's *actual* input artifact, and the
+  pipeline fingerprint covers `buildlut.py`/`executor.py`/`model.py`, so a changed upstream
+  op or an upgraded engine invalidates stale caches. `--no-reuse` disables reuse.
 - **Stable identifiers.** No timestamps, no UUIDs; LUT filenames are `sha256(content)[:16]`,
-  so identical wheel values produce identical filenames on every machine.
+  so identical parameter values produce identical filenames on every machine.
 
 ## Artifact validation
 
@@ -213,6 +217,7 @@ The contract states stable identifiers (`skill_id`, `operations[].type`, `operat
 |---|---|---|
 | `skill --json` / `contract --json` | no | no |
 | `doctor --json` | no | no |
+| `inspect IMAGE --json` | yes (read-only) | no |
 | `validate REQUEST\|- --json` | no | no |
 | `plan REQUEST\|- --json` | probes source (read-only) | no |
 | `run REQUEST\|- --json [--dry-run]` | yes | yes |

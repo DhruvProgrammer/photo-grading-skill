@@ -593,21 +593,108 @@ The user rated the vibrance-grade result 3/10 with their own fix recipe (audit o
 1. **#1 "Pull back saturation first, selectively tune greens/blues"** — implemented as
    **`PHOTO_HSV`** (per-hue-family tweaks — `green_hue/luminance`, `blue_hue/saturation/...` for
    red/orange/yellow/green/cyan/blue/magenta — via `build_hsl_lut` + lut3d). Note: the skill's
-   `saturation` was too destructive for "vibrant" (saturation +100 → eq saturation scale 2.0);
-   for global vibrance, tune per-family saturation with PHOTO_HSV, or use contrast + tone curve.
+   `saturation` is a blunt global scale (saturation +100 → eq saturation scale 2.0, which clips);
+   a dedicated **`vibrance`** (weighted toward colorful pixels, low-chroma gated) now exists and is
+   the safer "make it vibrant" control.
 2. **#2 "White balance + split toning"** — skill: `PHOTO_CORRECTION.white_balance_temperature/tint`
    (balance) + `PHOTO_GRADING` Teal & Orange wheels (complementary split).
 3. **#3 "Tone curve"** — new: `PHOTO_CORRECTION` gained `tone_blacks`/`tone_shadows`/`tone_midtones`/
    `tone_highlights`/`tone_whites` (0..2; piecewise-linear on BT.709 luma anchors via
    `build_tone_curve_lut` + lut3d; identity at defaults). Anchor deep blacks (tone_blacks > 0 lifts
-   blacks), smooth the highlight shoulder (tone_whights < 1 pulls the white anchor down, softening
+   blacks), smooth the highlight shoulder (tone_whites < 1 pulls the white anchor down, softening
    the shoulder).
 4. **#4 "HSL per-color"** — new op: `PHOTO_HSV` — implemented as `build_hsl_lut` (per-hue-family
    LUT tweaks via `_tint` semantics: hue rotation + saturation scale + channel shift).
-5. **#5 "Haze/dehaze + clarity"** — skill has `sharpness` (unsharp). No dehaze filter in ffmpeg — noted.
+5. **#5 "Haze/dehaze + clarity"** — skill has `sharpness` (unsharp) and **`clarity`** (ffmpeg
+   `cas`, Contrast Adaptive Sharpen: local midtone contrast without the halos of a fixed
+   unsharp kernel). No dehaze filter in ffmpeg — noted.
 
 ### Self-review loop (their advice, applied)
 
 - "make a few different variations, compare, find the best" — the skill: `photo-grading plan`
   (dry run) + `doctor` as checks; smoke tests of every op on real photos; the double-run pitfall
   (don't re-run the skill twice when auditing).
+
+---
+
+## 21. The 1.5/10 audit: root causes, not slider guesses
+
+The second "vibrant" grade was rated 1.5/10: false-color orange/amber blocks, hard mask
+edges, over-saturated foliage, a blown sky. The useful lesson is that none of those were a
+matter of taste — they were implementation bugs shipping underneath every grade. The audit
+reproduced each one on the actual photo, fixed it, and added a test that fails if it comes
+back. A color LUT pipeline is only as trustworthy as its index order and its HSV math.
+
+### The bugs (reproduced, then fixed)
+
+| # | Bug | What it did | Fix |
+|---|---|---|---|
+| 1 | `.cube` data written R-slowest/B-fastest | Adobe Cube 1.0 is **red fastest, blue slowest**; ffmpeg read every LUT with R and B transposed, turning hue/saturation moves into false-color orange/blue blocks | one shared `_cube_points()` iterator (the only definition of the order); `scale_lut_strength` maps entry index the same way; axis-order regression test |
+| 2 | `hsv_to_rgb` had all six sectors scrambled | every hue rotation (wheels, HSL, vibrance) corrupted colors | standard sector table + HSV→RGB→HSV round-trip test over primaries, gray and earth tones |
+| 3 | white balance was `hue=h=...` (up to 180°) | anything away from 6500 K inverted colors; tint only desaturated | `build_wb_lut`: normalized R/G/B gains (largest gain = 1, so nothing clips) and black stays black |
+| 4 | white-balance LUT added headroom to every channel | `(0,0,0)` became `(0.04,0,0)`; dark pixels turned into red/orange speckles | gains are multiplicative; a test asserts black is preserved at every temperature/tint |
+| 5 | `unsharp=la.size=3` — not a valid option | every request with `sharpness` failed | `unsharp=lx=3:ly=3:la=...`; error messages show the **tail** of ffmpeg stderr, not the banner |
+| 6 | operations ignored their declared `input` and chained linearly | a second branch from `source` was silently graded on top of the first branch → the false-color candidate images | run the DAG: each op reads `source` or `op:<id>`; each branch is independent |
+| 7 | intermediates were 8-bit and kept the source extension | JPEG re-compressed once per op, 8-bit rounding before heavy curves → posterization | lossless 16-bit PNG intermediates (`rgb48be`); the requested output format is encoded exactly once at the end |
+| 8 | reuse identity hashed the original source, not the op's input; no engine version; `--no-reuse` ignored | changing an upstream op reused stale downstream artifacts, and old buggy LUTs survived code fixes | identity hashes the actual input artifact + skill version + a fingerprint of `buildlut.py`/`executor.py`/`model.py`; `--no-reuse` applied |
+| 9 | HSL used nearest-family hard masks, then a 5-20% saturation gate | hue families stepped at boundaries; the first soft version still amplified the boulder's 20-30% chroma into blue-green mottling | normalized soft Gaussian family weights; HSL and vibrance are gated out below **30%** saturation, full at **50%** |
+| 10 | levels used hard luma thresholds | visible step where a band started | smoothstep band weights + `_soft_delta` (no hard channel clip) |
+| 11 | signalstats means from 16-bit planes compared against 8-bit numbers | before/after numbers no longer comparable after the 16-bit switch | normalize >255 plane means to the 8-bit scale |
+| 12 | "color cast" was the whole-frame mean | every green landscape was flagged, because green content is not a cast | `inspect` measures white balance on **near-neutral pixels only** (s ≤ 12%) and reports the neutral share |
+
+### Guardrails added
+
+- `photo-grading inspect IMAGE --json`: exact pixel statistics (luma percentiles, clipping,
+  mean/p95 saturation, neon share, hue families, neutral-pixel cast) plus conservative
+  warnings — the check that would have caught the 1.5/10 result before posting.
+- `PHOTO_CORRECTION.vibrance`: saturation weighted toward colorful pixels and gated away from
+  low-chroma texture; `PHOTO_CORRECTION.clarity`: `cas` (Contrast Adaptive Sharpen) for local
+  contrast without unsharp halos.
+- Tests: HSV round-trip, cube axis order, WB identity/black preservation, vibrance neutral
+  and low-chroma identity, tone curve, HSL softness, 16-bit measurement normalization.
+
+### The final "vibrant" recipe (195×183 mountain/lake photo)
+
+```json
+{"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source", "parameters": {
+  "white_balance_temperature": 6680, "white_balance_tint": 5,
+  "exposure": 0.14, "contrast": 18, "saturation": -6, "vibrance": 65,
+  "clarity": 12, "sharpness": 6,
+  "tone_blacks": 0.01, "tone_shadows": 0.15, "tone_midtones": 0.52,
+  "tone_highlights": 0.83, "tone_whites": 0.96}}
+{"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr", "parameters": {
+  "yellow_hue": -3, "yellow_saturation": 7, "yellow_luminance": 2,
+  "green_hue": -6, "green_saturation": 13, "green_luminance": 2,
+  "cyan_hue": -4, "cyan_saturation": -12,
+  "blue_hue": -5, "blue_saturation": 17, "blue_luminance": -2}}
+```
+
+Measured on the real photo (OBSERVED, not judged):
+
+| metric | source | final |
+|---|---|---|
+| highlight clipping | 5.49% | **0.00%** |
+| shadow clipping | 0.03% | 0.61% |
+| neutral cast R-G / B-G | -8.6 / +3.1 | **-5.5 / -1.9** |
+| mean saturation | 54.1 | 59.0 |
+| neon share (≥90% sat) | 4.72% | 4.52% |
+
+Mean saturation is above the inspector's conservative 55 threshold because the source is
+already vivid; the neon share did not increase and the neutral cast improved, which is the
+part that matters. The boulder stayed gray, the lake deepened, the sky kept its roll-off.
+
+### Lessons worth keeping
+
+1. **Verify LUT index order before trusting any grade.** One transposed axis looks exactly
+   like "the user has bad taste".
+2. **Round-trip color-space math in tests.** Six scrambled HSV sectors produced every
+   psychedelic artifact in this audit.
+3. **Fix the engine, not the recipe.** Reaching for more sliders on a broken pipeline only
+   produces new artifacts.
+4. **Judge white balance on neutral patches**, never on a whole-frame mean.
+5. **Gate hue-selective math by chroma.** Rock, concrete, haze and JPEG noise have unstable
+   hue; a per-color LUT must leave them alone.
+6. **16-bit intermediates, one final encode.** Re-compressing every step is invisible until
+   the first heavy curve, when it becomes posterization.
+7. **Cache keys must include the engine.** Otherwise a fixed bug keeps producing its old
+   output from a stale intermediate.

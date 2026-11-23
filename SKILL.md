@@ -1,6 +1,6 @@
 ---
 name: photo-grading
-description: Deterministic photo color grading / photo color correction execution Skill for AI photo agents. Use it when a caller has decided which color treatment to apply to a photo and needs it executed safely: the 3-way Color Grading wheels (Shadows / Midtones / Highlights + Global: hue, saturation, luminance per wheel; blending; balance), typed photo corrections (white balance temperature/tint, exposure, contrast, highlights/shadows/blacks/whites, saturation, sharpness), or 3D LUT application (PHOTO_LUT_APPLY). Executed as typed, deterministic operations through FFmpeg's photo filters (lut3d, eq, hue, unsharp), with output validation and provenance. Do NOT use it to decide which color treatment or look to apply, to judge a photo "cinematic", or to run arbitrary ffmpeg filters. WHITE_BALANCE is an alias of PHOTO_CORRECTION restricted to temperature/tint.
+description: Deterministic photo color grading / photo color correction execution Skill for AI photo agents. Use it when a caller has decided which color treatment to apply to a photo and needs it executed safely: the 3-way Color Grading wheels (Shadows / Midtones / Highlights + Global: hue, saturation, luminance per wheel; blending; balance), typed photo corrections (white balance temperature/tint, exposure, contrast, highlights/shadows/blacks/whites, saturation, vibrance, tone curve, sharpness, clarity, grain), per-hue-family HSL (PHOTO_HSV), or 3D LUT application (PHOTO_LUT_APPLY). Executed as typed, deterministic operations through FFmpeg's photo filters (lut3d, eq, unsharp, cas), with output validation, objective inspection and provenance. Do NOT use it to decide which color treatment or look to apply, to judge a photo "cinematic", or to run arbitrary ffmpeg filters. WHITE_BALANCE is an alias of PHOTO_CORRECTION restricted to temperature/tint.
 ---
 
 # photo-grading
@@ -8,7 +8,8 @@ description: Deterministic photo color grading / photo color correction executio
 Machine interface: `photo-grading run - --json` with a `photo-grading/request@1` document on
 stdin; exactly one `photo-grading/response@1` document on stdout. `photo-grading skill --json`
 prints the contract; `doctor --json` the environment; `plan - --json` a dry run;
-`validate - --json` a schema check.
+`validate - --json` a schema check; `inspect IMAGE --json` objective pixel statistics
+(clipping, saturation, neon share, neutral-pixel white-balance cast) + warnings.
 
 Rules for a calling agent:
 1. Decide first: which operation, which look (the caller already did this). This skill has
@@ -19,13 +20,22 @@ Rules for a calling agent:
    `blending` (0-100, default 50), `balance` (-100..100, default 0). `PHOTO_CORRECTION`:
    `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100),
    `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites`
-   (-100..100), `saturation` (-100..100), `sharpness` (0..100). `PHOTO_LUT_APPLY`: `lut_path` (required).
+   (-100..100), `saturation` (-100..100), `vibrance` (-100..100), `sharpness` (0..100),
+   `clarity` (0..100), `grain` (0..50), `tone_blacks`/`tone_shadows`/`tone_midtones`/
+   `tone_highlights`/`tone_whites` (0..2). `PHOTO_HSV`: `red_*`/`orange_*`/`yellow_*`/`green_*`/
+   `cyan_*`/`blue_*`/`magenta_*` with `_hue` (-100..100 = -40..40 degrees), `_saturation`
+   (-100..100), `_luminance` (-100..100). `PHOTO_LUT_APPLY`: `lut_path` (required), `strength` (0..1).
+   Prefer `vibrance` over `saturation` for "make it vibrant": it protects already-saturated
+   pixels and leaves low-chroma texture alone.
 3. Never send commands, argv, filter strings or executable paths: the request is rejected.
 4. Keep outputs inside the workspace, never at the input path; set `overwrite: true`
    deliberately. This skill never mutates inputs.
 5. Read `results[].status`, `outputs[].provenance` and `error` from the JSON; exit code 0
    only when `ok` is true.
 6. Measurements (signalstats means) are OBSERVED values; report what you saw.
+7. Verify the result with `photo-grading inspect IMAGE --json`: compare clipping, saturation,
+   neon share and neutral-pixel cast against the source. A grade should not add highlight
+   clipping or a neutral-pixel cast, and should not raise the neon share.
 
 Wheel semantics (PHOTO_GRADING): zones are BT.709 luma bands (shadows/midtones/highlights).
 Each wheel with `saturation > 0` rotates a pixel's hue by the wheel's hue and scales its
