@@ -364,6 +364,59 @@ image already has chroma to rotate; use WB or a LUT when neutral surfaces need a
 Blending 50–80; balance 0 to +20. Protect neutrals: white shirts, gray concrete and clouds must
 stay neutral, or the image reads as tinted rather than designed.
 
+### Teal and orange when there is no skin (wildlife, nature, architecture)
+
+The look does not need a human face. The warm side can be fur, sand, wood, autumn leaves or sunlit
+stone; the cool side can be sky, haze, water or shade. The mechanics stay the same, but three
+things change.
+
+**1. The subject's lit side and the sky can share the highlights zone.** On a bright outdoor frame
+the pale sky and the brightest fur both sit above the 0.80 luma boundary, so one highlights wheel
+does two jobs: it rotates the sky toward teal and the warm fur toward orange. That is efficient —
+but always check both. If the sky turns mint while the fur turns yellow-green, the rotation is
+wrong for one of them; move the hue a few degrees and re-measure.
+
+**2. Never rotate neutral stone.** Beige rock, sand and dry grass sit in the midtones with almost
+no chroma. A positive midtone rotation turns them olive; a negative one turns them salmon. Set
+`midtones_hue` to **0** and get the warmth from `white_balance_temperature` plus midtone
+saturation. Saturation preserves hue; rotation does not.
+
+**3. Near-black markings stay neutral for free.** Leopard rosettes, zebra stripes and dark
+crevices have almost no chroma, and the wheel scales saturation rather than adding a tint, so a
+teal shadow wheel leaves them black. What it does affect is *coloured* shade — shadowed brown fur,
+moss, dust — which is exactly the cool detail that sells the split.
+
+**Low-chroma sources need the wheels, not HSL.** HSL is gated out below ~30% saturation. A source
+whose mean saturation is under 20% (hazy daylight, compressed web JPEG, pale desert) will barely
+respond to `PHOTO_HSV`; the wheel LUT is ungated and carries the look. Use HSL only for the few
+pixels that are genuinely saturated.
+
+**Worked recipe — low-chroma daylight wildlife.** Source: 221×148, mean saturation 19%, pale blue
+sky, warm beige rock, leopard with near-neutral rosettes.
+
+```
+WB 6700 K, tint +2
+exposure +0.02 · contrast 14 · saturation +3 · vibrance 28
+shadows −3 · highlights −18
+tone 0.006 / 0.14 / 0.525 / 0.86 / 0.995
+clarity 3 · sharpness 2
+wheels: shadows 182/24/−2 · midtones 0/28/0 · highlights 350/75/−5
+blending 68 · balance 0
+```
+
+What each part does: the warm WB deepens the rock and fur; highlights −18 protects the pale sky;
+the 182° shadow wheel cools the shade; midtones 0/28 warms stone without rotating its hue; the
+350° highlight wheel does double duty, rotating sky toward cyan and warm fur toward orange.
+
+Measured: sky 181/204/209 (hue 194°, saturation 22%), highlight clip 0.000%, shadow clip 0.92%,
+neon 0.003%, stone hue unchanged at 35.4° (source 35.8°), mean saturation 24% against 19% source.
+
+Reading the result: the neutral-pixel cast reads strongly negative in R−G when the sky is teal
+(−12 here). That is the look, not a leak; confirm instead that the stone hue did not move. A sky
+at 195–205° with 20–25% saturation reads as designed teal; below ~190° it drifts mint-green, above
+~210° it is simply a blue sky. If the subject's shade turns olive, the midtones were rotated —
+return `midtones_hue` to 0.
+
 ### Other looks
 
 | Look | Shadows | Highlights | Contrast | When it fits |
