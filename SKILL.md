@@ -21,7 +21,7 @@ Rules for a calling agent:
    `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100),
    `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites`
    (-100..100), `saturation` (-100..100), `vibrance` (-100..100), `sharpness` (0..100),
-   `clarity` (0..100), `grain` (0..50), `tone_blacks`/`tone_shadows`/`tone_midtones`/
+   `clarity` (0..100), `grain` (0..50), `chroma_denoise` (0..100, chroma-only), `tone_blacks`/`tone_shadows`/`tone_midtones`/
    `tone_highlights`/`tone_whites` (0..2). `PHOTO_HSV`: `red_*`/`orange_*`/`yellow_*`/`green_*`/
    `cyan_*`/`blue_*`/`magenta_*` with `_hue` (-100..100 = -40..40 degrees), `_saturation`
    (-100..100), `_luminance` (-100..100). `PHOTO_LUT_APPLY`: `lut_path` (required), `strength` (0..1).
