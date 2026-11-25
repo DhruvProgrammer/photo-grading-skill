@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import SKILL_ID, VERSION
+from . import critic
 from .buildlut import (HSV_FAMILIES, build_hsl_lut, build_levels_lut, build_tone_curve_lut,
                        build_vibrance_lut, build_wb_lut, build_wheel_lut, scale_lut_strength)
 from .errors import PhotoError
@@ -43,7 +44,7 @@ def _pipeline_fingerprint() -> str:
     so upgrading the skill invalidates cached intermediates (otherwise a cache produced by an
     older, buggy pipeline silently survives a fix)."""
     h = hashlib.sha256()
-    for name in ("buildlut.py", "executor.py", "model.py"):
+    for name in ("buildlut.py", "executor.py", "model.py", "critic.py"):
         p = Path(__file__).with_name(name)
         try:
             h.update(p.read_bytes())
@@ -66,15 +67,21 @@ def _sha256_file(path: Path) -> str:
 
 def _lut_arg(path: str) -> str:
     # The path sits in a filter string, where ':' separates options and '\' escapes.
-    # Prefer a cwd-relative path (the LUT is written into the cwd): no colon, clean.
+    # Prefer a cwd-relative path: no colon, clean. An absolute Windows path (or any path with a
+    # colon) needs the colon escaped *and* the whole value quoted; without the quotes ffmpeg 8
+    # splits the drive letter off as an option name.
     p = str(path)
     try:
         rel = os.path.relpath(p, os.getcwd())
         if not rel.startswith("..") and ":" not in rel:
-            return rel.replace("\\", "/")
+            value = rel.replace("\\", "/")
+        else:
+            value = p.replace("\\", "/").replace(":", "\\:")
     except ValueError:
-        pass
-    return p.replace("\\", "/").replace(":", "\\:")
+        value = p.replace("\\", "/").replace(":", "\\:")
+    if "'" in value:
+        raise PhotoError("PATH_NOT_ALLOWED", "LUT path may not contain a single quote", {"path": p})
+    return f"'{value}'"
 
 
 def _stderr_tail(p: subprocess.CompletedProcess, lines: int = 8) -> str:
@@ -258,7 +265,94 @@ class Executor:
             return [f"lut3d=file={_lut_arg(lut)}"]
         raise PhotoError("UNSUPPORTED_OPERATION", f"no chain for type {op.type!r}", {"type": op.type})
 
-    def _apply(self, src: Path, dst: Path, op: ColorOperation, timeout: float) -> Dict[str, Any]:
+    def _render_lut(self, src: Path, dst: Path, lut_path: str, timeout: float) -> Dict[str, Any]:
+        """Render one LUT through ffmpeg and validate the artifact (shared by PHOTO_OPTIMIZE)."""
+        src_probe = self.probe(src)
+        argv = [str(self.ffmpeg), "-nostdin", "-y", "-i", str(src),
+                "-vf", f"lut3d=file={_lut_arg(lut_path)}"]
+        if dst.suffix.lower() in (".png", ".tif", ".tiff"):
+            argv += ["-pix_fmt", "rgb48be"]
+        argv += [str(dst)]
+        p = _run(argv, timeout, "ffmpeg PHOTO_OPTIMIZE")
+        if p.returncode != 0:
+            raise PhotoError("TOOL_ERROR", f"ffmpeg failed for PHOTO_OPTIMIZE: {_stderr_tail(p)}",
+                             {"path": str(dst)}, retryable=True)
+        if not dst.is_file() or dst.stat().st_size == 0:
+            raise PhotoError("OUTPUT_ERROR", "ffmpeg wrote no output for PHOTO_OPTIMIZE", {"path": str(dst)})
+        dst_probe = self._check_geometry_unchanged(src_probe, dst, timeout)
+        self._check_readable(dst)
+        return dst_probe
+
+    def _apply_report(self, src: Path, dst: Path, op: ColorOperation, reference: Path) -> Dict[str, Any]:
+        """PHOTO_ANALYZE / PHOTO_SCORE: a pass-through image op plus a report.
+        The report measures `src` (the op input) against `reference` (the project source), so
+        a score describes the grade at that point in the DAG, not only the original file."""
+        # Re-encode once into the pipeline's lossless 16-bit PNG artifact. Copying the source
+        # bytes would leave JPEG content behind a .png name, and a downstream output that
+        # matched suffixes would then copy it without re-encoding.
+        self._encode_output(src, dst, "png", self.timeout)
+        src_probe = self.probe(src)
+        dst_probe = self._check_geometry_unchanged(src_probe, dst, self.timeout)
+        self._check_readable(dst)
+        max_pixels = int(op.parameters.get("max_pixels", critic.DEFAULT_MAX_PIXELS))
+        if op.type == "PHOTO_ANALYZE":
+            report = critic.analyze_file(str(src), str(reference), max_pixels)
+        else:
+            report = critic.score_file(str(src), op.parameters["target"], str(reference), max_pixels)
+        stats = self.signalstats(src)
+        return {"operation_id": op.op_id, "type": op.type, "tool": "python/critic",
+                "input_hash": src_probe["sha256"], "output_hash": dst_probe["sha256"],
+                "measurements": {"before": {k: v for k, v in stats.items()},
+                                 "after": {k: v for k, v in stats.items()},
+                                 "source": {"width": src_probe["width"], "height": src_probe["height"]},
+                                 "output": {"width": dst_probe["width"], "height": dst_probe["height"],
+                                            "pix_fmt": dst_probe["pix_fmt"], "codec_name": dst_probe["codec_name"]}},
+                "report": report}
+
+    def _apply_optimize(self, src: Path, dst: Path, op: ColorOperation, timeout: float) -> Dict[str, Any]:
+        """PHOTO_OPTIMIZE: run the critic loop on a proxy, bake the winning grade into a LUT,
+        render it once at full size, then verify the full render against the untouched input.
+        If the full render would score below the source, re-render with an identity LUT."""
+        p = op.parameters
+        target = p["target"]
+        report = critic.optimize_file(
+            str(src), target,
+            iterations=int(p.get("iterations", critic.DEFAULT_ITERATIONS)),
+            proxy_size=int(p.get("proxy_size", critic.DEFAULT_PROXY_SIZE)),
+            lut_size=int(p.get("lut_size", critic.DEFAULT_LUT_SIZE)),
+            directory=str(self.policy.work_dir()))
+        lut_path = report["lut"]["path"]
+        src_probe = self.probe(src)
+        src_stats = self.signalstats(src)
+        dst_probe = self._render_lut(src, dst, lut_path, timeout)
+        full = critic.verify_full_render(str(src), str(dst), target)
+        report["full"] = full
+        if not full["improved"] and not report.get("fallback_identity"):
+            identity = critic.build_grade_lut(critic.IDENTITY, report["lut"]["size"],
+                                              directory=str(self.policy.work_dir()))
+            lut_path = identity["path"]
+            dst_probe = self._render_lut(src, dst, lut_path, timeout)
+            full = critic.verify_full_render(str(src), str(dst), target)
+            report["full"] = full
+            report["lut"] = {k: v for k, v in identity.items() if k != "table"}
+            report["fallback_full_identity"] = True
+        out_stats = self.signalstats(dst)
+        return {"operation_id": op.op_id, "type": op.type, "tool": "python/critic+ffmpeg",
+                "input_hash": src_probe["sha256"], "output_hash": dst_probe["sha256"],
+                "measurements": {"before": {k: v for k, v in src_stats.items()},
+                                 "after": {k: v for k, v in out_stats.items()},
+                                 "source": {"width": src_probe["width"], "height": src_probe["height"]},
+                                 "output": {"width": dst_probe["width"], "height": dst_probe["height"],
+                                            "pix_fmt": dst_probe["pix_fmt"], "codec_name": dst_probe["codec_name"]}},
+                "report": report,
+                "path": str(lut_path), "sha256": _sha256_file(Path(lut_path)), "applied": "lut3d"}
+
+    def _apply(self, src: Path, dst: Path, op: ColorOperation, timeout: float,
+               reference: Optional[Path] = None) -> Dict[str, Any]:
+        if op.type in ("PHOTO_ANALYZE", "PHOTO_SCORE"):
+            return self._apply_report(src, dst, op, reference or src)
+        if op.type == "PHOTO_OPTIMIZE":
+            return self._apply_optimize(src, dst, op, timeout)
         chain = self.build_chain(op, self.policy.work_dir())
         argv = [str(self.ffmpeg), "-nostdin", "-y", "-i", str(src)]
         if chain:
@@ -363,11 +457,11 @@ class Executor:
             hit = None
             if reuse:
                 hit = self._check_reuse(dst, identity, src, op)
-                result = hit if hit is not None else self._apply(current, dst, op, project.options["timeout"])
+                result = hit if hit is not None else self._apply(current, dst, op, project.options["timeout"], reference=src)
                 if hit is None:
                     self._write_stamp(dst, identity, result)
             else:
-                result = self._apply(current, dst, op, project.options["timeout"])
+                result = self._apply(current, dst, op, project.options["timeout"], reference=src)
                 self._write_stamp(dst, identity, result)
             results_by_op[op.op_id] = {"operation_id": op.op_id, "type": op.type, **result, "reused": hit is not None}
             artifacts[f"op:{op.op_id}"] = dst   # keyed by REF so an op literally named "source" can't clobber it
