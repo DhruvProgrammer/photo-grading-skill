@@ -1,0 +1,35 @@
+{
+  "schema": "photo-grading/request@1",
+  "project": {
+    "project_id": "teal-orange-leopard-v4",
+    "options": {"overwrite": true},
+    "source": {"source_id": "photo.png", "path": "photo.png"},
+    "operations": [
+      {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source",
+       "parameters": {
+         "white_balance_temperature": 6250, "white_balance_tint": 3,
+         "exposure": -0.16, "contrast": 28, "saturation": 4, "vibrance": 28,
+         "clarity": 0, "sharpness": 0,
+         "blacks": -10, "shadows": -22, "highlights": -58,
+         "tone_blacks": 0.0, "tone_shadows": 0.07, "tone_midtones": 0.48,
+         "tone_highlights": 0.74, "tone_whites": 0.96
+       }},
+      {"op_id": "wheels", "type": "PHOTO_GRADING", "input": "op:corr",
+       "parameters": {
+         "shadows_hue": 190, "shadows_saturation": 36, "shadows_luminance": -12,
+         "midtones_hue": 0, "midtones_saturation": 52,
+         "highlights_hue": 350, "highlights_saturation": 92, "highlights_luminance": -34,
+         "blending": 76, "balance": 12, "strength": 1.0
+       }},
+      {"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:wheels",
+       "parameters": {
+         "blue_hue": 4, "blue_saturation": 16, "blue_luminance": -22,
+         "cyan_hue": 4, "cyan_saturation": 12, "cyan_luminance": -18
+       }}
+    ],
+    "outputs": [
+      {"output_id": "final_png", "operation": "op:hsl", "path": "teal_orange_leopard_4.png", "format": "png"},
+      {"output_id": "final_jpg", "operation": "op:hsl", "path": "teal_orange_leopard_4.jpg", "format": "jpg"}
+    ]
+  }
+}
