@@ -135,6 +135,10 @@ PHOTO_CORRECTION_PARAMS: Dict[str, Dict[str, Any]] = {
     # edges, which is what "clarity" means in a photo editor. 0 = off.
     "clarity": {"type": "int", "min": 0, "max": 100, "default": 0},
     "grain": {"type": "int", "min": 0, "max": 50, "default": 0},
+    # Chroma-only denoise (ffmpeg hqdn3d with luma strength 0). Compression blockiness in a
+    # smooth sky is mostly chroma; smoothing U/V removes the colour blotches without touching
+    # luma detail (fur, spots). 0 = off; 20-40 is a gentle cleanup.
+    "chroma_denoise": {"type": "int", "min": 0, "max": 100, "default": 0},
     # Tone curve anchors (user feedback #3: "Rebuild contrast with a tone curve: anchor deep
     # blacks..., smooth the highlight shoulder"): piecewise-linear on BT.709 luma, anchors at
     # L=0->blacks, L=0.15->shadows, L=0.5->midtones, L=0.85->highlights, L=1->whites;
