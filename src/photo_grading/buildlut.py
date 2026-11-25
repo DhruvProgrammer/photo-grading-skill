@@ -57,7 +57,14 @@ def _cube_points(size: int) -> Iterator[Tuple[float, float, float]]:
                 yield ir / (n - 1), g, b
 
 
-def _write_cube(prefix: str, size: int, title: str, lines: List[str]) -> str:
+def write_cube(prefix: str, size: int, title: str, lines: List[str],
+               directory: Optional[str] = None) -> str:
+    """Write a full Adobe Cube 1.0 file and return its path.
+
+    The filename carries sha256(content)[:16], so identical parameters produce identical
+    filenames on every machine. `directory` places the file explicitly (the critic uses the
+    run's work dir); otherwise PHOTO_GRADING_SCRATCH or the cwd is used.
+    """
     # Full Adobe Cube 1.0 header: TITLE, LUT_3D_SIZE, DOMAIN_MIN, DOMAIN_MAX. The domain
     # lines are optional for ffmpeg but make the file self-describing and keep every parser
     # (ours included) aligned on where the data starts.
@@ -66,10 +73,16 @@ def _write_cube(prefix: str, size: int, title: str, lines: List[str]) -> str:
     body = "\n".join(lines) + "\n"
     import hashlib
     digest = hashlib.sha256((header + body).encode("ascii")).hexdigest()[:16]
-    p = Path(os.environ.get("PHOTO_GRADING_SCRATCH", os.getcwd())) / f"{prefix}_{digest}.cube"
+    base = Path(directory) if directory else Path(os.environ.get("PHOTO_GRADING_SCRATCH", os.getcwd()))
+    p = base / f"{prefix}_{digest}.cube"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(header + body, encoding="ascii")
     return str(p)
+
+
+def _write_cube(prefix: str, size: int, title: str, lines: List[str]) -> str:
+    """Backward-compatible internal name; see write_cube."""
+    return write_cube(prefix, size, title, lines)
 
 
 def _zone_bounds(balance: int) -> Tuple[float, float]:
