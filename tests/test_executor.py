@@ -25,6 +25,14 @@ def test_executor_no_tone_lut_when_defaults(tmp_path, monkeypatch):
     assert not any("tone_curve" in f for f in chain), chain
 
 
+def test_lut_arg_quotes_windows_absolute_path():
+    from photo_grading.executor import _lut_arg
+    arg = _lut_arg(r"C:\Users\someone\.photo-grading\grade.cube")
+    assert arg.startswith("'") and arg.endswith("'")
+    assert "\\:" in arg          # the drive-letter colon is escaped
+    assert arg.count("'") == 2
+
+
 def test_executor_hsl_chain(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
     op = ColorOperation("h", "PHOTO_HSV", "source", {"green_hue": 30, "blue_luminance": -15})
@@ -77,7 +85,7 @@ def test_run_project_honors_each_operations_declared_input(tmp_path):
         return {"path": str(p), "width": 2, "height": 2, "pix_fmt": "rgb24", "codec_name": "png",
                 "size": p.stat().st_size, "sha256": "hash-" + p.stem, "n_streams": 1}
 
-    def fake_apply(src_path, dst, op, timeout):
+    def fake_apply(src_path, dst, op, timeout, reference=None):
         calls.append((op.op_id, Path(src_path).name))
         Path(dst).parent.mkdir(parents=True, exist_ok=True)
         Path(dst).write_bytes(b"x")
