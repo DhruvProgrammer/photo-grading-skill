@@ -464,6 +464,13 @@ and p99 from 218 to 240 with 0.000% highlight clip. Start the ramp lower (value 
 coat turns chalky; the shoulder is what keeps it sunlit. Compose this with the +14% recovery LUT into
 one `.cube`: sequential LUT passes add interpolation error for no visual gain.
 
+**Trim after the LUT.** A white-point shoulder can still leave the brightest ridge within a few
+luma of clipping. A final `PHOTO_CORRECTION` with `whites −6` and `highlights −3` placed after the
+LUT pulls the ridge peak from 229 to 223 and clears every channel above 240, while the sky moves
+0.7 luma and keeps its hue. Keep it as a separate op after the LUT rather than rebuilding the cube:
+the correction is scene-specific, the LUT is reusable, and −6/−3 is small enough to read as recovered
+headroom rather than a second grade. Past about −10 whites the sunlit rock starts to flatten.
+
 Compression cleanup runs first, not last. `chroma_denoise 50` on the correction op applies `hqdn3d`
 with luma at 0.001 and chroma at 5; on this source it cut sky chroma high-frequency from 0.178 to
 0.160 without touching spot edges. It cannot remove luma blockiness — that is source-limited. Do not
@@ -472,7 +479,8 @@ add clarity or sharpness to compensate.
 Final measured: sky 144/169/182 (hue 201.4°, saturation 28.7%, luma 165), leopard luma 145, rock
 194/182/145 (luma 182), shadow clip 2.49%, highlight clip 0.000%, neon 0.018%, cast −2.6/−7.0, no
 warnings. Against the previous pass the sky moved +1 luma, the leopard +7 and the rock +12; the top
-decile of warm pixels moved +19.
+decile of warm pixels moved +19. The delivered pass adds the −6/−3 trim: ridge peak 223, leopard
+peak 225, no pixel above 240 in either PNG or JPEG, sky unchanged at 164 luma.
 
 Reading the result: a sky at 200–203° with ~29% saturation and luma 150–165 reads deep teal; the same
 hue at luma 170 reads pale blue. Rock at 170–182 with 33–35% saturation reads golden-cream; below
