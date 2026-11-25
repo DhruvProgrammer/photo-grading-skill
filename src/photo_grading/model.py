@@ -15,6 +15,16 @@ Operations:
   hue/saturation/luminance -100..100; executed via a generated LUT (soft family weights, so
   neighbouring colors blend instead of posterizing).
 - PHOTO_LUT_APPLY  apply a 3D .cube LUT with ffmpeg lut3d; requires lut_path.
+- PHOTO_ANALYZE  pass-through measurement: copy the input and attach an OKLab `report`
+  (exposure, contrast, clipping, cast, Hasler-Suesstrunk colourfulness, tint, skin shift).
+- PHOTO_SCORE    pass-through measurement: PHOTO_ANALYZE plus a caller-supplied target look
+  and a 0..100 score with every penalty term listed. The target is numbers, never a look name.
+- PHOTO_OPTIMIZE deterministic coordinate descent of the 8 grade parameters against the target,
+  on a proxy; bakes the winner into a 3D LUT and renders it once through ffmpeg lut3d.
+  Requires the optional `critic` extra (numpy, Pillow).
+
+The critic operations never decide a look: `PHOTO_SCORE` and `PHOTO_OPTIMIZE` take the look
+from the request as a closed set of numbers (see critic.TARGET_FIELDS).
 
 The model is a pure structural/semantic validator: it never touches the file system (that is
 the executor's and PathPolicy's job). Unknown fields are rejected everywhere; fields that
@@ -54,7 +64,8 @@ OUTPUT_FORMATS: Dict[str, Dict[str, Any]] = {
 PHOTO_EXTENSIONS = tuple(fmt["extension"] for fmt in OUTPUT_FORMATS.values())
 
 # operation_aliases: request-level aliases, resolved to their target type at validation.
-OPERATION_TYPES = ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV")
+OPERATION_TYPES = ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV",
+                   "PHOTO_ANALYZE", "PHOTO_SCORE", "PHOTO_OPTIMIZE")
 OPERATION_ALIASES = {"WHITE_BALANCE": "PHOTO_CORRECTION", "PHOTO_WHITE_BALANCE": "PHOTO_CORRECTION"}
 
 
@@ -86,6 +97,12 @@ def _validate_params(params: Any, allowed: Dict[str, Dict[str, Any]], alias: boo
             raise PhotoError("INVALID_REQUEST", f"parameter {k} is required", {"path": path, "parameter": k})
         if spec.get("type") == "string" and v is not None and not isinstance(v, str):
             raise PhotoError("INVALID_REQUEST", f"parameter {k} must be a string", {"path": path, "parameter": k})
+        if spec.get("type") == "object" and v is not None:
+            from .critic import normalize_target
+            normalize_target(v, path=f"{path}.{k}")
+        if spec.get("choices") and v is not None and v not in spec["choices"]:
+            raise PhotoError("INVALID_REQUEST", f"parameter {k} must be one of {list(spec['choices'])}",
+                             {"path": path, "parameter": k, "got": v})
         if spec.get("type") in ("int", "number") and v is not None:
             lo, hi = spec["min"], spec["max"]
             if spec["type"] == "int":
@@ -94,6 +111,10 @@ def _validate_params(params: Any, allowed: Dict[str, Dict[str, Any]], alias: boo
             else:
                 if not _is_num(v) or v < lo or v > hi:
                     raise PhotoError("INVALID_REQUEST", f"parameter {k} must be a number in [{lo}, {hi}]", {"path": path, "parameter": k, "got": v})
+    # Required parameters must actually be present, not merely non-empty when supplied.
+    for k, spec in allowed.items():
+        if spec.get("required") and k not in params:
+            raise PhotoError("INVALID_REQUEST", f"parameter {k} is required", {"path": path, "parameter": k})
 
 
 # ---- typed parameter tables ----
@@ -165,6 +186,39 @@ def _hsv_fam_params() -> Dict[str, Dict[str, Any]]:
 
 
 PHOTO_HSV_PARAMS: Dict[str, Dict[str, Any]] = _hsv_fam_params()
+
+
+# ---- critic operations: the caller supplies the target look as numbers ----
+# OKLab hue angles: 0 = red/magenta (+a), 90 = yellow (+b), 180 = green (-a), 270 = blue (-b).
+TARGET_SPEC: Dict[str, Dict[str, Any]] = {
+    "shadow_hue": {"type": "number", "min": 0.0, "max": 360.0,
+                   "description": "OKLab hue angle of the shadow tint (teal ~200)"},
+    "highlight_hue": {"type": "number", "min": 0.0, "max": 360.0,
+                      "description": "OKLab hue angle of the highlight tint (orange ~55)"},
+    "tint_mag": {"type": "number", "min": 0.0, "max": 0.20,
+                 "description": "OKLab chroma added in each zone (0.02-0.05 is a normal split tone)"},
+    "colorfulness": {"type": "number", "min": 0.0, "max": 150.0,
+                     "description": "Hasler-Suesstrunk M3 target (30 clinical, 45 average, 60+ punchy)"},
+    "median_L": {"type": "number", "min": 0.0, "max": 1.0,
+                 "description": "target median OKLab L (0.45-0.65 is a normal photo)"},
+    "spread": {"type": "number", "min": 0.0, "max": 1.0,
+               "description": "target p95-p05 OKLab L spread"},
+}
+_TARGET_PARAM = {"type": "object", "required": True, "fields": TARGET_SPEC,
+                 "description": "caller-supplied target look; every field is a number, no look names"}
+_MAX_PIXELS = {"type": "int", "min": 1000, "max": 5000000, "default": 250000,
+               "description": "pixels sampled from the full image for analysis (stride, no resize)"}
+PHOTO_ANALYZE_PARAMS: Dict[str, Dict[str, Any]] = {"max_pixels": _MAX_PIXELS}
+PHOTO_SCORE_PARAMS: Dict[str, Dict[str, Any]] = {"target": _TARGET_PARAM, "max_pixels": _MAX_PIXELS}
+PHOTO_OPTIMIZE_PARAMS: Dict[str, Dict[str, Any]] = {
+    "target": _TARGET_PARAM,
+    "iterations": {"type": "int", "min": 1, "max": 200, "default": 40,
+                   "description": "coordinate-descent sweeps; deterministic, no RNG"},
+    "proxy_size": {"type": "int", "min": 64, "max": 1024, "default": 384,
+                   "description": "longest side of the proxy the loop scores"},
+    "lut_size": {"type": "int", "min": 17, "max": 65, "choices": (17, 33, 65), "default": 33,
+                 "description": "points per axis of the generated .cube LUT; 33 is the default, 65 if the 33^3 score is materially low"},
+}
 
 # For the WHITE_BALANCE alias, the allowed parameter set at request level is restricted to
 # white-balance fields: temperature + tint only (the alias is resolved to PHOTO_CORRECTION at
@@ -328,6 +382,12 @@ def parse_request(doc: Any) -> ColorProject:
             allowed = PHOTO_CORRECTION_PARAMS
         elif otype == "PHOTO_HSV":
             allowed = PHOTO_HSV_PARAMS
+        elif otype == "PHOTO_ANALYZE":
+            allowed = PHOTO_ANALYZE_PARAMS
+        elif otype == "PHOTO_SCORE":
+            allowed = PHOTO_SCORE_PARAMS
+        elif otype == "PHOTO_OPTIMIZE":
+            allowed = PHOTO_OPTIMIZE_PARAMS
         else:  # PHOTO_LUT_APPLY
             allowed = {"lut_path": {"type": "string", "required": True, "default": None},
                        "strength": {"type": "number", "min": 0.0, "max": 1.0, "default": 1.0}}
