@@ -22,7 +22,7 @@ work is felt before it is noticed, and it survives being toggled off.
 8. Local control without masks
 9. Scene playbooks
 10. Finishing: clarity, sharpness, grain, output
-11. Quality control: measure, don't guess
+11. Quality control: measure, don't guess (inspect, critic, optimizer)
 12. Parameter reference
 13. Engine invariants: why grades fail
 14. Glossary
@@ -759,6 +759,77 @@ blockiness; if the sky is banded in brightness, the fix is a larger source, not 
 | Hue families | matches the scene | Unexpected magenta/cyan dominance = cast or HSL error |
 | Region luma std | compare variants; +1–2 is meaningful | Flat midtones or lost separation |
 
+### Deterministic critic and optimizer
+
+The critic replaces "does it look right?" with a distance to a stated look. It works in
+**OKLab** because equal numeric steps are roughly equal perceptual steps; RGB and HSV are not
+uniform, so one threshold would mean different things in shadows, midtones and highlights.
+
+A target look is six numbers, all required. There are no look names and no presets.
+
+| Field | Range | Meaning |
+|---|---|---|
+| `shadow_hue`, `highlight_hue` | 0..360 | OKLab hue angle of the tint in the shadow / highlight quartiles. 0 = red/magenta (+a), 90 = yellow (+b), 180 = green (−a), 270 = blue (−b). Teal ≈ 200, orange ≈ 55 |
+| `tint_mag` | 0..0.20 | OKLab chroma added in each zone. 0.02–0.05 is a normal split tone; below 0.005 the hue is below the visible floor and is treated as no tint |
+| `colorfulness` | 0..150 | Hasler–Süsstrunk M3 (mean opponent-channel spread + 0.3 × mean offset) |
+| `median_L` | 0..1 | Median OKLab L |
+| `spread` | 0..1 | p95 − p05 OKLab L |
+
+**OKLab hue is absolute; a wheel hue is a rotation.** A shadow wheel at 190 rotates whatever
+hue a pixel already has; on green foliage (~140) it moves toward magenta, not to a 190-degree
+teal. Set critic targets from the measured hue of the result you want, never by copying wheel
+numbers. The same distinction applies to the optimizer's `sh_hue`/`hi_hue`, which add an
+absolute OKLab vector.
+
+Metrics and what they actually capture:
+
+- **median L / spread** — exposure and contrast, robust to a few specular pixels. Spread is
+  p95 − p05, not standard deviation, so one blown highlight does not dominate.
+- **clipping** — share of pixels with a channel at ≤0.004 (black) or ≥0.996 (white).
+- **cast** — mean a/b of near-neutral pixels. Reported, never penalized: a deliberate tint is
+  a look, not an error.
+- **M3 colourfulness** — scale-dependent. Compare the same crop and size; a downscale lowers it.
+- **zone tint** — mean OKLab chroma delta of the reference's shadow/highlight quartiles. It
+  includes any global saturation change, so a saturation move can register as a hue shift;
+  the optimizer compensates by moving the tint vector. `tint_strength` scores both zones
+  against one target magnitude.
+- **skin** — mean hue shift of a rough orange/mid-L mask, free up to 6°. It is a heuristic,
+  not face detection.
+- **overcooked** — mean OKLab distance from the original, free up to 0.10. It catches a grade
+  that is technically on target but has moved every pixel a long way.
+
+Score = 100 + Σ penalties. Every term reports its measured value, target and tolerance, so a
+low score is diagnosable rather than mysterious. A target tint below 0.005 is treated as no
+tint: chasing the hue of an invisible tint just makes the optimizer add chroma to satisfy noise.
+
+The optimizer searches eight parameters (`exposure`, `contrast`, `saturation`, `sh_hue`,
+`sh_amt`, `hi_hue`, `hi_amt`, `balance`) by coordinate descent: fixed parameter order, fixed
+step schedule, shrinking step, no RNG. Only strict improvements are accepted, so the result
+cannot be worse than the untouched image. It scores a ~384 px proxy, bakes the winner into a
+33³ `.cube` LUT, re-scores the proxy through numpy trilinear interpolation (the same mapping
+`lut3d` applies), and renders once at full size. If the LUT path scores materially below the
+direct grade, it rebuilds at 65³; if even the best LUT scores below an identity LUT, it falls
+back to identity.
+
+Why the proxy and the LUT:
+
+- A 500×889 photo at 384 px is ~100k pixels; 640 evaluations is practical. Full size is ~20×
+  slower and rarely changes the argmax.
+- Scoring the direct OKLab grade would miss LUT interpolation error. A 33³ grid is ~1 MB and
+  accurate to roughly 0.003 mean sRGB; 65³ is ~7.7 MB and only needed near gamut edges.
+- The full render is re-checked because proxy sampling and full-size sampling do not see the
+  same pixels.
+
+Bounds are a rescue guard, not a style limit: ±0.25 L exposure, −0.40/+0.60 contrast,
+−0.50/+0.60 saturation, 0.08 per-zone tint. A look that needs more than that is a rescue or a
+different image, not a grade.
+
+**The score is not quality.** 100 means "matches this target under these guards", nothing
+more. A strong target can be unreachable because skin or overcooked is binding; the report
+shows which term is binding. Coordinate descent is deterministic but local: it is safe, not
+globally optimal. A learned aesthetic model (LAION or similar) is deliberately excluded; if
+added, it may only rank candidates of the same image, never produce an absolute score.
+
 ### Region checks that catch what the whole frame hides
 
 Measure small crops, not just the full image:
@@ -846,6 +917,16 @@ Families: red, orange, yellow, green, cyan, blue, magenta. Gated below 30% satur
 | `balance` | −100..100 | 0 | Positive widens midtones |
 | `strength` | 0–1 | 1.0 | Look dial |
 
+### PHOTO_ANALYZE / PHOTO_SCORE / PHOTO_OPTIMIZE
+
+| Parameter | Range | Default | Notes |
+|---|---|---|---|
+| `target` | six required numbers | — | `shadow_hue`, `highlight_hue`, `tint_mag`, `colorfulness`, `median_L`, `spread`; no look names, no presets |
+| `max_pixels` | 1000..5,000,000 | 250,000 | analysis sample size; a stride over the full image, not a resize |
+| `iterations` | 1..200 | 40 | coordinate-descent sweeps; deterministic |
+| `proxy_size` | 64..1024 | 384 | longest side of the proxy the loop scores |
+| `lut_size` | 17 / 33 / 65 | 33 | points per axis of the generated `.cube` |
+
 ### Canonical natural-alpine recipe (reference)
 
 ```json
@@ -897,6 +978,27 @@ recipe survives execution.
 - **Levels bands use smoothstep weights.** A hard threshold leaves a visible step where the band
   starts. If a band looks like a line across the image, the math regressed to a hard mask.
 
+### Critic math
+
+- **OKLab L is not sRGB luma.** sRGB 0.5 is OKLab L ≈ 0.60; a target `median_L` of 0.60 is
+  mid-gray, not 60% luma. Do not copy an RGB or luma number into the target.
+- **OKLab hue is absolute; wheel hue is a rotation.** Copying a wheel value into
+  `shadow_hue`/`highlight_hue` usually points somewhere else. Measure the result you want.
+- **The tint metric includes global saturation.** A saturation move changes the mean chroma
+  delta and can register as a hue shift. If the target hue and tint strength fight, the
+  optimizer will trade one against the other; check which penalty is binding.
+- **LUT interpolation error grows near the gamut edges.** A 33³ LUT is accurate to roughly
+  0.003 mean sRGB in the interior but can miss saturated corners. The proxy is re-scored
+  through the LUT and the full render is checked; escalate to 65³ only when the score gap is
+  material.
+- **Coordinate descent is deterministic but local.** It is safe (accepted steps only, identity
+  fallback), not globally optimal. Two targets can land in different local optima.
+- **Skin and overcooked are constraints, not targets.** They cap a strong look even when every
+  look term is perfect. A score below 100 with only those terms penalized is the guards doing
+  their job.
+- **A learned aesthetic score would be judgment.** If one is ever added, restrict it to
+  ranking candidates of the same image; never use it as an absolute score across photos.
+
 ### Execution
 
 - **Operations form a DAG.** Each op reads `source` or `op:<id>`; branches are independent. A
@@ -923,6 +1025,9 @@ recipe survives execution.
 | The same recipe looks different on another file | Source gamut, bit depth, resolution |
 | The sky is flat after recovery | `tone_whites` used as a compressor |
 | The grass is gray after taming | Green saturation/luminance over-cut |
+| Optimizer returns identity | Target already met, or every step is blocked by a guard; check `parts_before` |
+| Proxy score differs from full render | LUT resolution or gamut clipping; try `lut_size: 65` and compare `full` |
+| Score is high but the image looks wrong | The target numbers describe the wrong look; the critic only measures distance to them |
 
 ---
 
