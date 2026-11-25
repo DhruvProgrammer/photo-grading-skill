@@ -1,0 +1,30 @@
+{
+  "schema": "photo-grading/request@1",
+  "project": {
+    "project_id": "naturalistic-lake-v1",
+    "options": {"overwrite": true},
+    "source": {"source_id": "photo.png", "path": "photo.png"},
+    "operations": [
+      {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source",
+       "parameters": {
+         "white_balance_temperature": 6550, "white_balance_tint": 1,
+         "exposure": 0.08, "contrast": 10, "vibrance": 0,
+         "clarity": 2, "sharpness": 2, "chroma_denoise": 20,
+         "blacks": -1, "shadows": 8, "highlights": -14,
+         "tone_blacks": 0.02, "tone_shadows": 0.13, "tone_midtones": 0.49,
+         "tone_highlights": 0.835, "tone_whites": 0.99
+       }},
+      {"op_id": "hsl", "type": "PHOTO_HSV", "input": "op:corr",
+       "parameters": {
+         "yellow_saturation": -10, "yellow_luminance": 2,
+         "green_saturation": -35, "green_luminance": -2,
+         "cyan_saturation": -22, "cyan_luminance": -1,
+         "blue_saturation": -10
+       }}
+    ],
+    "outputs": [
+      {"output_id": "final_png", "operation": "op:hsl", "path": "naturalistic_lake_1.png", "format": "png"},
+      {"output_id": "final_jpg", "operation": "op:hsl", "path": "naturalistic_lake_1.jpg", "format": "jpg"}
+    ]
+  }
+}
