@@ -13,6 +13,11 @@ authors = [{name = "DhruvProgrammer"}]
 keywords = ["photo", "color", "grading", "color-grading", "lut", "photoshop", "lightroom", "aesthetic", "skills", "ffmpeg"]
 dependencies = []
 
+[project.optional-dependencies]
+# PHOTO_ANALYZE / PHOTO_SCORE / PHOTO_OPTIMIZE need the critic extra. The core operations stay
+# standard-library + FFmpeg only.
+critic = ["numpy>=1.24", "Pillow>=10"]
+
 [project.scripts]
 photo-grading = "photo_grading.cli:main"
 
