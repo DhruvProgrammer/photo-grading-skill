@@ -3,6 +3,7 @@ capability carries one of supported | unsupported | unknown, never a guess. Dete
 through `ffmpeg -h filter=<name>` / `ffprobe` -- pure process output, no assumptions."""
 from __future__ import annotations
 
+import importlib
 import platform
 import re
 import shutil
@@ -58,6 +59,15 @@ def doctor_report(workspace: Optional[str] = None) -> Dict[str, Any]:
     ffprobe = shutil.which("ffprobe")
     checks["ffmpeg"] = {"status": "ok" if ffmpeg else "missing", "version": _version(ffmpeg)}
     checks["ffprobe"] = {"status": "ok" if ffprobe else "missing", "version": _version(ffprobe)}
+    # Optional critic dependencies. They are not required for the core image operations; the
+    # doctor reports them as capabilities so PHOTO_ANALYZE/SCORE/OPTIMIZE can be "unsupported"
+    # without failing the whole environment.
+    for module, name in (("numpy", "numpy"), ("PIL", "Pillow")):
+        try:
+            mod = importlib.import_module(module)
+            checks[name] = {"status": "ok", "version": getattr(mod, "__version__", None)}
+        except Exception as e:  # pragma: no cover - depends on the environment
+            checks[name] = {"status": "missing", "version": None, "detail": str(e)}
     filters = filter_status(ffmpeg)
     checks["filters"] = {k: {"status": v} for k, v in filters.items()}
     if not ffmpeg or not ffprobe:
@@ -87,6 +97,10 @@ def doctor_report(workspace: Optional[str] = None) -> Dict[str, Any]:
             need += ["lut3d"]
         elif typ == "PHOTO_HSV":
             need += ["lut3d"]
+        elif typ in ("PHOTO_ANALYZE", "PHOTO_SCORE"):
+            need += ["numpy", "Pillow"]
+        elif typ == "PHOTO_OPTIMIZE":
+            need += ["lut3d", "numpy", "Pillow"]
         ok = all(_status(c) in ("ok", "supported") for c in need)
         st = "supported" if ok else ("unknown" if any(_status(c) == "unknown" for c in need) else "unsupported")
         ops[typ] = {"status": st, "required": need,
