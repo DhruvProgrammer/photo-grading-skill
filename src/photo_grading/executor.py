@@ -170,6 +170,12 @@ class Executor:
     def _photo_correction_filter(self, op: ColorOperation) -> List[str]:
         p = op.parameters
         filters: List[str] = []
+        # chroma-only denoise before any grading, so the LUTs do not smear edges that the
+        # source already softened. hqdn3d works in YUV; luma stays untouched (0).
+        chroma_denoise = p.get("chroma_denoise")
+        if chroma_denoise:
+            strength = min(6.0, float(chroma_denoise) / 100.0 * 10.0)
+            filters.append(f"hqdn3d=luma_spatial=0.001:chroma_spatial={strength:.4g}:luma_tmp=0.001:chroma_tmp=0.001")
         # white balance: per-channel gains (temperature warms/cools R vs B, tint shifts G),
         # normalized so no gain exceeds 1 (no highlight clipping).
         temp = p.get("white_balance_temperature")
