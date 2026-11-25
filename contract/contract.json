@@ -63,7 +63,7 @@
   "operations": [
     {
       "type": "PHOTO_CORRECTION",
-      "description": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), saturation (-100..100), vibrance (-100..100, weighted toward muted pixels), sharpness (0..100), clarity (0..100, local contrast), grain (0..50), and tone-curve anchors. Executed via ffmpeg eq/unsharp/cas/noise plus generated LUTs for white balance and tonal bands.",
+      "description": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), saturation (-100..100), vibrance (-100..100, weighted toward muted pixels), sharpness (0..100), clarity (0..100, local contrast), grain (0..50), chroma_denoise (0..100, chroma-only), and tone-curve anchors. Executed via ffmpeg eq/unsharp/cas/noise/hqdn3d plus generated LUTs for white balance and tonal bands.",
       "inputs": 1,
       "parameters": {
         "white_balance_temperature": {
@@ -142,6 +142,12 @@
           "type": "int",
           "min": 0,
           "max": 50,
+          "default": 0
+        },
+        "chroma_denoise": {
+          "type": "int",
+          "min": 0,
+          "max": 100,
           "default": 0
         },
         "tone_blacks": {
@@ -505,6 +511,7 @@
         "sharpness",
         "clarity",
         "grain",
+        "chroma_denoise",
         "tone_blacks",
         "tone_shadows",
         "tone_midtones",
@@ -530,6 +537,7 @@
         "sharpness",
         "clarity",
         "grain",
+        "chroma_denoise",
         "tone_blacks",
         "tone_shadows",
         "tone_midtones",
