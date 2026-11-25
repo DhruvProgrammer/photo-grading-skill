@@ -47,6 +47,29 @@ work is felt before it is noticed, and it survives being toggled off.
 6. **Stop before the texture breaks.** On a small or compressed file, the last 10% of contrast or
    sharpening costs more detail than it adds punch.
 
+### Working method
+
+Professional grading practice maps onto this engine as a set of habits, not extra controls.
+
+- **Broad before narrow; neutralize before correcting.** Fix exposure, balance and tone with
+  `PHOTO_CORRECTION` before reaching for wheels or HSL. A narrow hue fix on an unbalanced base
+  treats the symptom and leaves the cause.
+- **Overshoot once, then retreat.** Make one deliberately exaggerated variant to find the boundary,
+  then back off toward the sweet spot. Creeping up in small steps wastes passes and produces
+  exports that look identical to the last one.
+- **Know when to do nothing.** Compare a candidate against the current best with region
+  measurements. If sky, subject and anchors moved by only a point or two, do not ship it; reset and
+  try a different axis.
+- **Eyes first, numbers second.** Judge the image, then use `inspect` as a reality check for
+  clipping, cast and chroma. A cast warning on an intentionally teal sky is expected; a moved
+  anchor is not.
+- **Separation comes from tone, not just hue.** Push warm tones up and cool tones down with
+  `shadows`, `highlights` and wheel luminance, then rebalance after raising saturation. Boosting
+  saturation alone makes imbalance more visible, not less.
+- **Protect the highlight shoulder.** Lower `highlights`, `tone_highlights` and negative wheel
+  luminance before adding warmth, so bright sand, stone and fur keep texture instead of going
+  pastel or peach.
+
 ---
 
 ## 2. Read the frame before touching a slider
@@ -868,3 +891,6 @@ are specific to this skill.
   strength, "do more with less".
 - Lightroom color grading tutorials — foundation-first workflow, blending/balance, color fatigue,
   variation comparison.
+- Pro Color Grading Playbook (Cullen Kelly, Walter Volpatto, Charles Haine; paraphrased) — working
+  method: broad before narrow, overshoot then retreat, eyes first/scopes second, separation before
+  saturation.
