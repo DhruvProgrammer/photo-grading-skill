@@ -118,7 +118,8 @@ def test_output_operation_must_be_declared():
 
 
 def test_operation_types_and_aliases_lists():
-    assert OPERATION_TYPES == ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV")
+    assert OPERATION_TYPES == ("PHOTO_GRADING", "PHOTO_CORRECTION", "PHOTO_LUT_APPLY", "PHOTO_HSV",
+                               "PHOTO_ANALYZE", "PHOTO_SCORE", "PHOTO_OPTIMIZE")
     assert OPERATION_ALIASES["WHITE_BALANCE"] == "PHOTO_CORRECTION"
 
 
@@ -175,3 +176,44 @@ def test_photo_correction_tone_params():
     doc["project"]["operations"][0]["parameters"]["tone_blacks"] = 2.5
     with pytest.raises(PhotoError):
         parse_request(doc)
+
+
+TARGET = {"shadow_hue": 200, "highlight_hue": 55, "tint_mag": 0.035,
+          "colorfulness": 45, "median_L": 0.58, "spread": 0.55}
+
+
+def _critic_doc(op_type, params):
+    return {"schema": SCHEMA,
+            "project": {"project_id": "critic", "source": {"source_id": "s.png", "path": "s.png"},
+                        "operations": [{"op_id": "c", "type": op_type, "input": "source", "parameters": params}],
+                        "outputs": [{"output_id": "o", "operation": "op:c", "path": "o.png", "format": "png"}]}}
+
+
+def test_analyze_op_takes_no_target():
+    p = parse_request(_critic_doc("PHOTO_ANALYZE", {"max_pixels": 10000}))
+    assert p.operations[0].type == "PHOTO_ANALYZE"
+    assert p.operations[0].parameters["max_pixels"] == 10000
+
+
+def test_score_op_requires_a_complete_numeric_target():
+    p = parse_request(_critic_doc("PHOTO_SCORE", {"target": TARGET}))
+    assert p.operations[0].parameters["target"]["shadow_hue"] == 200
+    missing = dict(TARGET)
+    missing.pop("spread")
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_SCORE", {"target": missing}))
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_SCORE", {"target": {**TARGET, "look": "teal_orange"}}))
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_SCORE", {"target": {**TARGET, "shadow_hue": "teal"}}))
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_SCORE", {}))
+
+
+def test_optimize_lut_size_and_iterations_are_bounded():
+    p = parse_request(_critic_doc("PHOTO_OPTIMIZE", {"target": TARGET, "lut_size": 65, "iterations": 8}))
+    assert p.operations[0].parameters["lut_size"] == 65
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_OPTIMIZE", {"target": TARGET, "lut_size": 50}))
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_OPTIMIZE", {"target": TARGET, "iterations": 0}))
