@@ -3,6 +3,34 @@
 All notable changes to photo-grading-skill are documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- `PHOTO_ANALYZE`: pass-through OKLab measurement (median L, p05/p95 spread, clipping,
+  near-neutral cast, Hasler-Süsstrunk M3, shadow/highlight tint, skin-hue shift, mean OKLab
+  distance).
+- `PHOTO_SCORE`: `PHOTO_ANALYZE` plus a 0..100 score against a caller-supplied target look
+  (six required numbers: `shadow_hue`, `highlight_hue`, `tint_mag`, `colorfulness`,
+  `median_L`, `spread`), with every penalty term reported.
+- `PHOTO_OPTIMIZE`: deterministic coordinate descent over eight grade parameters on a ~384 px
+  proxy; bakes the winner into a 3D `.cube` LUT, re-scores through numpy trilinear
+  interpolation and renders once at full size. Accepted steps only; identity fallback; never
+  worse than the untouched image.
+- CLI `analyze`, `score`, `optimize`; optional `[critic]` extra (`numpy`, `Pillow`).
+- `write_cube(..., directory=...)` and a quoted absolute-path form for `lut3d`.
+
+### Changed
+
+- Critic targets below 0.005 tint are treated as no tint, so the optimizer does not chase
+  invisible hue noise.
+- The README states explicitly that scoring against a caller-supplied target is measurement,
+  not judgment; the skill still never decides a look.
+
+### Tests
+
+- 77 unit tests, including 14 critic/optimizer tests.
+
 ## [0.1.0] — 2026-11-22
 
 ### Added
