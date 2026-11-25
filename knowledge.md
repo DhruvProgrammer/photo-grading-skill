@@ -452,15 +452,33 @@ luma 162; this one reaches sky luma 152 and rock luma 148.
 **Selective recovery.** A deep grade drags the subject's bright fur and sand down with the sky. Apply
 a warm-hue LUT after the wheels — 15–65°, saturation above 0.08, value above 0.5, luminance +14% —
 to lift only sunlit warm surfaces. On this source it raised fur from 127 to 138 luma and rock from
-148 to 170 while the sky stayed at 164 and shadow clip fell to 2.44%. Above ~20% lift the peach
-returns. A hue-targeted LUT is the only split available here: sky and bright fur share the
-highlights zone, so a single wheel always moves both.
+148 to 170 while the sky stayed at 164 and shadow clip fell to 2.44%. Above ~20% *uniform* lift the
+peach returns; a shoulder that desaturates as it lifts avoids that. A hue-targeted LUT is the only
+split available here: sky and bright fur share the highlights zone, so a single wheel always moves
+both.
 
-Reading the result: a sky at 200–203° with ~30% saturation and luma ~150 reads deep teal; the same
-hue at luma 170 reads pale blue. Rock below luma 150 at ~49° reads golden-amber; above ~175 at ~35°
-reads chalky peach. A grade cannot add detail that the 221×148 source never had; run the same recipe
-on a higher-resolution original if one exists. If the subject's shade turns olive, the midtones were
-rotated — return `midtones_hue` to 0.
+**White point on a compressed source.** The warm recovery still leaves the brightest fur and lit rock
+about 20 luma below white. A second warm-hue LUT with a shoulder — 12–74°, value ramping 0.50–0.80,
+`v += (1 − v) · 0.8 · w`, saturation −18% on the lifted pixels — raises the warm p90 from 203 to 222
+and p99 from 218 to 240 with 0.000% highlight clip. Start the ramp lower (value 0.5) and the whole
+coat turns chalky; the shoulder is what keeps it sunlit. Compose this with the +14% recovery LUT into
+one `.cube`: sequential LUT passes add interpolation error for no visual gain.
+
+Compression cleanup runs first, not last. `chroma_denoise 50` on the correction op applies `hqdn3d`
+with luma at 0.001 and chroma at 5; on this source it cut sky chroma high-frequency from 0.178 to
+0.160 without touching spot edges. It cannot remove luma blockiness — that is source-limited. Do not
+add clarity or sharpness to compensate.
+
+Final measured: sky 144/169/182 (hue 201.4°, saturation 28.7%, luma 165), leopard luma 145, rock
+194/182/145 (luma 182), shadow clip 2.49%, highlight clip 0.000%, neon 0.018%, cast −2.6/−7.0, no
+warnings. Against the previous pass the sky moved +1 luma, the leopard +7 and the rock +12; the top
+decile of warm pixels moved +19.
+
+Reading the result: a sky at 200–203° with ~29% saturation and luma 150–165 reads deep teal; the same
+hue at luma 170 reads pale blue. Rock at 170–182 with 33–35% saturation reads golden-cream; below
+~150 it is dull, above ~190 at low saturation it turns chalky. A grade cannot add detail that the
+221×148 source never had; run the same recipe on a higher-resolution original if one exists. If the
+subject's shade turns olive, the midtones were rotated — return `midtones_hue` to 0.
 
 ### Other looks
 
@@ -665,6 +683,15 @@ Always set it explicitly.
 - 6–12: visible film character.
 - Above 12: stylistic; it will soften detail and should not be used to hide compression blocks.
 
+### Chroma denoise
+
+`chroma_denoise` (0–100) runs `hqdn3d` at the start of a `PHOTO_CORRECTION` op: luma 0.001, chroma
+`value / 10`, temporal 0.001. It smooths U/V only, so spots, whiskers and fur edges keep their luma
+detail. Use 30–60 on a compressed sky or a noisy colour cast. It removes colour blotches, not luma
+blockiness; if the sky is banded in brightness, the fix is a larger source, not more denoise. Keep
+`clarity` and `sharpness` at 0 afterwards. Do not pass 0 for the luma terms — `hqdn3d` treats 0 as
+"use the default", which silently turns on luma and temporal smoothing.
+
 ### Output
 
 - Grade in 16-bit; encode once at the end.
@@ -758,6 +785,7 @@ Measure small crops, not just the full image:
 | `clarity` | 0–100 | 0 | 2–6 | CAS local contrast |
 | `sharpness` | 0–100 | 25 | 2–5 | Always set explicitly |
 | `grain` | 0–50 | 0 | 0–8 | `noise=alls` |
+| `chroma_denoise` | 0–100 | 0 | 30–60 | `hqdn3d`, chroma only |
 | `tone_blacks` | 0–2 | 0.00 | 0.00–0.02 | Anchor at L=0 |
 | `tone_shadows` | 0–2 | 0.15 | 0.12–0.15 | Anchor at L=0.15 |
 | `tone_midtones` | 0–2 | 0.50 | 0.49–0.52 | Anchor at L=0.50 |
