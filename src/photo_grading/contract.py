@@ -34,8 +34,9 @@ _OPERATION_DESCRIPTIONS = {
     "PHOTO_CORRECTION": "Typed photo corrections: white balance (temperature 2500-10000, tint -100..100), "
                         "exposure (-10..10), contrast (-100..100), highlights/shadows/blacks/whites (-100..100), "
                         "saturation (-100..100), vibrance (-100..100, weighted toward muted pixels), sharpness "
-                        "(0..100), clarity (0..100, local contrast), grain (0..50), and tone-curve anchors. Executed "
-                        "via ffmpeg eq/unsharp/cas/noise plus generated LUTs for white balance and tonal bands.",
+                        "(0..100), clarity (0..100, local contrast), grain (0..50), chroma_denoise (0..100, "
+                        "chroma-only), and tone-curve anchors. Executed "
+                        "via ffmpeg eq/unsharp/cas/noise/hqdn3d plus generated LUTs for white balance and tonal bands.",
     "PHOTO_LUT_APPLY": "Apply a 3D .cube LUT with ffmpeg lut3d. LUT is data read from disk, never a filter string.",
     "PHOTO_HSV": "Per-hue-family HSL tweaks (red/orange/yellow/green/cyan/blue/magenta): hue/saturation/"
                  "luminance shifts of the pixels in each family, executed via a generated LUT "
