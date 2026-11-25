@@ -54,3 +54,19 @@ workspace default matches the product).
 Re-running the same request reuses the intermediate when the stamp's identity matches:
 `sha256({type, parameters, input_identity, tool_versions})`, no timestamps, no UUIDs
 (matches the video skill's determinism rule).
+
+## ADR-08 — The critic scores a caller-supplied target; it does not judge
+
+`PHOTO_ANALYZE`, `PHOTO_SCORE` and `PHOTO_OPTIMIZE` measure in OKLab. A target is exactly six
+numbers (`shadow_hue`, `highlight_hue`, `tint_mag`, `colorfulness`, `median_L`, `spread`), with
+no look names or presets. The score is `100 + Σ penalties`; every part reports its measured
+value, target and tolerance, and cast is reported but never penalized. Skin-hue shift and mean
+OKLab distance are guards, not look targets.
+
+**Why**: the caller decides the look; the skill measures distance to it. This keeps the
+"never judges a photo cinematic" rule while still allowing an automated loop. The optimizer is
+deterministic coordinate descent (fixed order, fixed step schedule, no RNG), accepts only
+improving steps, bakes the winner into a LUT, re-scores through the LUT path and re-checks the
+full render with an identity fallback. It is safe, not globally optimal; a learned aesthetic
+score would reintroduce judgment and is excluded (if added, ranking candidates of the same
+image only).
