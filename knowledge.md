@@ -391,31 +391,41 @@ whose mean saturation is under 20% (hazy daylight, compressed web JPEG, pale des
 respond to `PHOTO_HSV`; the wheel LUT is ungated and carries the look. Use HSL only for the few
 pixels that are genuinely saturated.
 
-**Worked recipe — low-chroma daylight wildlife.** Source: 221×148, mean saturation 19%, pale blue
-sky, warm beige rock, leopard with near-neutral rosettes.
+**High-key sources need weight before warmth.** On a bright, sandy frame a warm WB plus a strong
+highlights wheel turns lit rock and fur chalky peach and leaves the sky pastel. Set `tone_blacks`
+to 0, pull `tone_shadows` to 0.11–0.12 and `shadows` to −8/−10 first; lower `highlights` to about
+−28 and give the highlights wheel a negative `luminance` (−10 to −14) so the sky deepens instead of
+brightening. Keep highlight `saturation` at 40–55 rather than 70–80. On a file under ~1500 px set
+`clarity` 1 and `sharpness` 1: stronger clarity amplifies compression blocks in fur and spot edges.
+
+**Worked recipe — low-chroma daylight wildlife (revised).** Source: 221×148, mean saturation 19%,
+pale blue sky, warm beige rock, leopard with near-neutral rosettes.
 
 ```
-WB 6700 K, tint +2
-exposure +0.02 · contrast 14 · saturation +3 · vibrance 28
-shadows −3 · highlights −18
-tone 0.006 / 0.14 / 0.525 / 0.86 / 0.995
-clarity 3 · sharpness 2
-wheels: shadows 182/24/−2 · midtones 0/28/0 · highlights 350/75/−5
-blending 68 · balance 0
+WB 6500 K, tint +2
+exposure −0.04 · contrast 20 · saturation +2 · vibrance 20
+shadows −9 · highlights −28
+tone 0 / 0.115 / 0.50 / 0.83 / 0.985
+clarity 1 · sharpness 1
+wheels: shadows 188/26/−6 · midtones 0/34/0 · highlights 352/52/−12
+blending 64 · balance 10
 ```
 
-What each part does: the warm WB deepens the rock and fur; highlights −18 protects the pale sky;
-the 182° shadow wheel cools the shade; midtones 0/28 warms stone without rotating its hue; the
-350° highlight wheel does double duty, rotating sky toward cyan and warm fur toward orange.
+What each part does: `tone_shadows` 0.115 and `shadows −9` give the dark spots and rock crevices
+weight; `highlights −28` plus highlights `luminance −12` roll the pale sky off into a deeper teal;
+midtones 0/34 warms stone without rotating its hue; the 352° highlight wheel stays restrained so
+lit rock keeps its texture instead of going peach; clarity 1 and sharpness 1 leave the low-res fur
+soft.
 
-Measured: sky 181/204/209 (hue 194°, saturation 22%), highlight clip 0.000%, shadow clip 0.92%,
-neon 0.003%, stone hue unchanged at 35.4° (source 35.8°), mean saturation 24% against 19% source.
+Measured: sky 164/188/196 (hue 196°, saturation 23.5%), shadow clip 1.56%, highlight clip 0.000%,
+neon 0.006%, mean saturation 24% against 19% source. Neutral cast −7.0/−2.8 — mild because the sky
+is no longer over-bright.
 
-Reading the result: the neutral-pixel cast reads strongly negative in R−G when the sky is teal
-(−12 here). That is the look, not a leak; confirm instead that the stone hue did not move. A sky
-at 195–205° with 20–25% saturation reads as designed teal; below ~190° it drifts mint-green, above
-~210° it is simply a blue sky. If the subject's shade turns olive, the midtones were rotated —
-return `midtones_hue` to 0.
+Reading the result: compare the rock's luma, not just its hue. The first pass read chalky at rock
+luma 184 even with stone hue 35°; the revised pass kept texture at luma 176. A sky at 195–205° with
+20–25% saturation reads as designed teal; below ~190° it drifts mint-green, above ~210° it is simply
+a blue sky. If the subject's shade turns olive, the midtones were rotated — return `midtones_hue`
+to 0.
 
 ### Other looks
 
