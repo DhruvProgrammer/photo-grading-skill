@@ -393,42 +393,43 @@ pixels that are genuinely saturated.
 
 **High-key sources need weight before warmth.** On a bright, sandy frame a warm WB plus a moderate
 highlights wheel turns lit rock and fur chalky peach and leaves the sky pastel. Small repeated tweaks
-do not fix this: change one move decisively. Pull `tone_shadows` to 0.09, `shadows` to −16,
-`highlights` to −42, `contrast` to 26 and `tone_highlights` to 0.78; give the highlights wheel
-`luminance −20` and `saturation 85`. Once the wheel has pushed sky chroma past the 30% gate, a light
-`PHOTO_HSV` pass on blue and cyan takes the sky deeper without touching the warm fur or stone.
-On a file this small set `clarity 0` and `sharpness 0`: the crunch is in the source and added
-sharpening only emphasises it.
+do not fix this. The remaining cause is highlight luminance: bring the upper sky and brightest sand
+down another 10–15 luma points with `blacks −10`, `shadows −22`, `highlights −58`, `tone_shadows
+0.07`, `tone_highlights 0.74` and highlights `luminance −34`. Lower luminance gives chroma room;
+tiny curve nudges are invisible on a thumbnail-sized file. A `PHOTO_HSV` pass *after* the wheel is
+the only way to take low-chroma sky deeper without tinting fur or stone. On a file this small set
+`clarity 0` and `sharpness 0`: the crunch is in the source and added sharpening only emphasises it.
 
 **Worked recipe — deep teal and amber wildlife.** Source: 221×148, mean saturation 19%, pale blue
 sky, warm beige rock, leopard with near-neutral rosettes.
 
 ```
-WB 6350 K, tint +3
-exposure −0.12 · contrast 26 · saturation +4 · vibrance 26
-shadows −16 · highlights −42
-tone 0 / 0.09 / 0.49 / 0.78 / 0.97
+WB 6250 K, tint +3
+exposure −0.16 · contrast 28 · saturation +4 · vibrance 28
+blacks −10 · shadows −22 · highlights −58
+tone 0 / 0.07 / 0.48 / 0.74 / 0.96
 clarity 0 · sharpness 0
-wheels: shadows 190/36/−9 · midtones 0/44/0 · highlights 350/85/−20
+wheels: shadows 190/36/−12 · midtones 0/52/0 · highlights 350/92/−34
 blending 76 · balance 12
-HSL: blue +6 hue / +16 sat / −10 lum; cyan +5 hue / +12 sat / −8 lum
+HSL: blue +4 hue / +16 sat / −22 lum; cyan +4 hue / +12 sat / −18 lum
 ```
 
-What each part does: the shadow and tone moves give the spots and crevices weight; `highlights −42`
-plus highlights `luminance −20` darken the sky and protect the rock; midtones 0/44 warms stone
-without rotating its hue. Highlight `saturation 85` would have gone peach on the earlier bright
-base, but with the sky and rock pulled down it reads as saturated teal and amber. The HSL pass runs
-*after* the wheel because only then does sky chroma clear the 30% gate. Clarity and sharpness 0 stop
-the engine from adding crunch to an already compressed file.
+What each part does: `blacks −10` and `tone_shadows 0.07` deepen the spots and crevices;
+`highlights −58`, `tone_highlights 0.74` and highlights `luminance −34` pull sky and bright sand down
+about 15 luma points; midtones 0/52 warms stone without rotating its hue. The HSL pass runs after
+the wheel, once sky chroma clears the 30% gate, and only touches blue/cyan. Clarity and sharpness 0
+stop the engine from adding crunch to an already compressed file.
 
-Measured: sky 152/174/186 (hue 201.6°, saturation 25.7%), rock 172/162/130 (hue 45.9°, saturation
-33.1%), shadow clip 2.04%, highlight clip 0.000%, neon 0.009%, mean saturation 27.4% against 19%
-source, cast −4.3/−4.0 and no warnings. The earlier pass sat at sky luma 184 / hue 196° and rock
-luma 176; this one reaches sky luma 170 / hue 202° and rock luma 162.
+Measured: sky 132/156/168 (hue 200.7°, saturation 29.1%), rock 157/148/117 (hue 48.8°, saturation
+34.6%), shadow clip 2.88%, highlight clip 0.000%, neon 0.021%, mean saturation 29.5% against 19%
+source, cast −2.8/−5.0 and no warnings. The earlier pass sat at sky luma 170 / hue 202° and rock
+luma 162; this one reaches sky luma 152 and rock luma 148.
 
-Reading the result: a sky at ~200° with 25% saturation and luma ~170 reads deep teal; 196° at luma
-184 reads pastel. Rock below luma ~165 at ~46° reads golden-amber; above ~180 at ~35° reads chalky
-peach. If the subject's shade turns olive, the midtones were rotated — return `midtones_hue` to 0.
+Reading the result: a sky at 200–203° with ~30% saturation and luma ~150 reads deep teal; the same
+hue at luma 170 reads pale blue. Rock below luma 150 at ~49° reads golden-amber; above ~175 at ~35°
+reads chalky peach. A grade cannot add detail that the 221×148 source never had; run the same recipe
+on a higher-resolution original if one exists. If the subject's shade turns olive, the midtones were
+rotated — return `midtones_hue` to 0.
 
 ### Other looks
 
