@@ -553,6 +553,31 @@ Why: warm the stone without warming the lake; pull green chroma and luminance to
 of neon; rotate cyan toward blue and cut its saturation so the ridge reads atmospheric; keep the
 finish soft for a small file.
 
+### Naturalistic / documentary (accurate color, restrained chroma)
+
+```
+WB 6550–6650 K, tint 0–2
+exposure 0 to +0.08 · contrast 8–12
+highlights −12 to −18 · shadows +6 to +10 · blacks −2 to 0
+tone_blacks 0.02 · tone_shadows 0.13 · tone_midtones 0.49–0.50
+tone_highlights 0.83–0.84 · tone_whites 0.99
+clarity 2 · sharpness 2
+HSL: green −30 to −40 sat / −2 lum; cyan −20 to −25 sat / −1 lum;
+     blue −10 sat; yellow −8 to −10 sat / +2 lum
+```
+
+Why: the look is carried by tone, not color. A lifted toe and a soft highlight shoulder give
+depth while keeping shadows open; the HSL cuts pull the chroma that contrast adds back out of
+foliage and water. No wheels: on a green-shadow scene a "cool shadows" wheel at 210° *rotates*
+green (≈140°) to red (≈350°), because wheel `hue` is a rotation, not a target. Reserve the wheels
+for scenes whose existing shadow hue is already the complement of the tint you want.
+
+**Contrast adds chroma in the shadows.** `eq` contrast works in YUV: lowering luma while chroma
+stays fixed raises HSV saturation, so a contrast of 14 can push dark forest from 28% to 41%
+saturation. Counter it with the HSL green/cyan cut, not the global `saturation` slider — `eq`
+saturation does not reliably reduce HSV saturation and shifts hue near neutral. Crushing dark
+green also clips G first, leaving red/magenta speckles; lift the toe before adding contrast.
+
 ### Vivid landscape (more punch, still natural)
 
 Increase `vibrance` to 30–40, `contrast` to 18–22, and `clarity` to 6–8 only if the file is large.
