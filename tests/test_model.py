@@ -146,6 +146,19 @@ def test_photo_hsv_op():
         parse_request(doc)
 
 
+def test_photo_correction_chroma_denoise():
+    doc = {"schema": SCHEMA,
+           "project": {"project_id": "c", "source": {"source_id": "s.jpg", "path": "s.jpg"},
+                       "operations": [{"op_id": "c", "type": "PHOTO_CORRECTION", "input": "source",
+                                        "parameters": {"chroma_denoise": 30}}],
+                       "outputs": [{"output_id": "o", "operation": "op:c", "path": "o.jpg", "format": "jpg"}]}}
+    p = parse_request(doc)
+    assert p.operations[0].parameters["chroma_denoise"] == 30
+    doc["project"]["operations"][0]["parameters"]["chroma_denoise"] = 101
+    with pytest.raises(PhotoError):
+        parse_request(doc)
+
+
 def test_photo_correction_tone_params():
     doc = {"schema": SCHEMA,
            "project": {"project_id": "c", "source": {"source_id": "s.jpg", "path": "s.jpg"},
