@@ -1,0 +1,32 @@
+{
+  "schema": "photo-grading/request@1",
+  "project": {
+    "project_id": "teal-orange-leopard-v6",
+    "options": {"overwrite": true},
+    "source": {"source_id": "photo.png", "path": "photo.png"},
+    "operations": [
+      {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source",
+       "parameters": {
+         "white_balance_temperature": 6250, "white_balance_tint": 3,
+         "exposure": -0.12, "contrast": 27, "saturation": 4, "vibrance": 28,
+         "clarity": 0, "sharpness": 0, "chroma_denoise": 50,
+         "blacks": -6, "shadows": -20, "highlights": -50,
+         "tone_blacks": 0.008, "tone_shadows": 0.08, "tone_midtones": 0.48,
+         "tone_highlights": 0.78, "tone_whites": 0.99
+       }},
+      {"op_id": "wheels", "type": "PHOTO_GRADING", "input": "op:corr",
+       "parameters": {
+         "shadows_hue": 190, "shadows_saturation": 36, "shadows_luminance": -12,
+         "midtones_hue": 0, "midtones_saturation": 52,
+         "highlights_hue": 350, "highlights_saturation": 92, "highlights_luminance": -34,
+         "blending": 76, "balance": 12, "strength": 1.0
+       }},
+      {"op_id": "warm_crisp", "type": "PHOTO_LUT_APPLY", "input": "op:wheels",
+       "parameters": {"lut_path": "warm_crisp.cube", "strength": 1.0}}
+    ],
+    "outputs": [
+      {"output_id": "final_png", "operation": "op:warm_crisp", "path": "teal_orange_leopard_6.png", "format": "png"},
+      {"output_id": "final_jpg", "operation": "op:warm_crisp", "path": "teal_orange_leopard_6.jpg", "format": "jpg"}
+    ]
+  }
+}
