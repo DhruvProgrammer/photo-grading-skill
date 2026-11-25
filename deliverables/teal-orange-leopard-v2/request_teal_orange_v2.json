@@ -1,0 +1,30 @@
+{
+  "schema": "photo-grading/request@1",
+  "project": {
+    "project_id": "teal-orange-leopard-v2",
+    "options": {"overwrite": true},
+    "source": {"source_id": "photo.png", "path": "photo.png"},
+    "operations": [
+      {"op_id": "corr", "type": "PHOTO_CORRECTION", "input": "source",
+       "parameters": {
+         "white_balance_temperature": 6500, "white_balance_tint": 2,
+         "exposure": -0.04, "contrast": 20, "saturation": 2, "vibrance": 20,
+         "clarity": 1, "sharpness": 1,
+         "shadows": -9, "highlights": -28,
+         "tone_blacks": 0.0, "tone_shadows": 0.115, "tone_midtones": 0.50,
+         "tone_highlights": 0.83, "tone_whites": 0.985
+       }},
+      {"op_id": "split", "type": "PHOTO_GRADING", "input": "op:corr",
+       "parameters": {
+         "shadows_hue": 188, "shadows_saturation": 26, "shadows_luminance": -6,
+         "midtones_hue": 0, "midtones_saturation": 34,
+         "highlights_hue": 352, "highlights_saturation": 52, "highlights_luminance": -12,
+         "blending": 64, "balance": 10, "strength": 1.0
+       }}
+    ],
+    "outputs": [
+      {"output_id": "final_png", "operation": "op:split", "path": "teal_orange_leopard_2.png", "format": "png"},
+      {"output_id": "final_jpg", "operation": "op:split", "path": "teal_orange_leopard_2.jpg", "format": "jpg"}
+    ]
+  }
+}
