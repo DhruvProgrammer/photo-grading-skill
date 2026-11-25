@@ -419,9 +419,10 @@ highlights wheel turns lit rock and fur chalky peach and leaves the sky pastel. 
 do not fix this. The remaining cause is highlight luminance: bring the upper sky and brightest sand
 down another 10–15 luma points with `blacks −10`, `shadows −22`, `highlights −58`, `tone_shadows
 0.07`, `tone_highlights 0.74` and highlights `luminance −34`. Lower luminance gives chroma room;
-tiny curve nudges are invisible on a thumbnail-sized file. A `PHOTO_HSV` pass *after* the wheel is
-the only way to take low-chroma sky deeper without tinting fur or stone. On a file this small set
-`clarity 0` and `sharpness 0`: the crunch is in the source and added sharpening only emphasises it.
+tiny curve nudges are invisible on a thumbnail-sized file. `PHOTO_HSV` stays gated until sky chroma
+clears 30%, so on a 17%-saturation source it is nearly inert; use a hue-targeted LUT if sky and
+subject must move in opposite directions. On a file this small set `clarity 0` and `sharpness 0`:
+the crunch is in the source and added sharpening only emphasises it.
 
 **Worked recipe — deep teal and amber wildlife.** Source: 221×148, mean saturation 19%, pale blue
 sky, warm beige rock, leopard with near-neutral rosettes.
@@ -447,6 +448,13 @@ Measured: sky 132/156/168 (hue 200.7°, saturation 29.1%), rock 157/148/117 (hue
 34.6%), shadow clip 2.88%, highlight clip 0.000%, neon 0.021%, mean saturation 29.5% against 19%
 source, cast −2.8/−5.0 and no warnings. The earlier pass sat at sky luma 170 / hue 202° and rock
 luma 162; this one reaches sky luma 152 and rock luma 148.
+
+**Selective recovery.** A deep grade drags the subject's bright fur and sand down with the sky. Apply
+a warm-hue LUT after the wheels — 15–65°, saturation above 0.08, value above 0.5, luminance +14% —
+to lift only sunlit warm surfaces. On this source it raised fur from 127 to 138 luma and rock from
+148 to 170 while the sky stayed at 164 and shadow clip fell to 2.44%. Above ~20% lift the peach
+returns. A hue-targeted LUT is the only split available here: sky and bright fur share the
+highlights zone, so a single wheel always moves both.
 
 Reading the result: a sky at 200–203° with ~30% saturation and luma ~150 reads deep teal; the same
 hue at luma 170 reads pale blue. Rock below luma 150 at ~49° reads golden-amber; above ~175 at ~35°
