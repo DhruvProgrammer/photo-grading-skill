@@ -100,6 +100,61 @@ Descriptors are scene-mixed measurements, not a grade. `describe()` runs only in
 `analyze_file`/`PHOTO_ANALYZE`; the optimizer's per-iteration path calls `analyze_rgb`, so
 the palette never enters the search loop.
 
+### Reverse-engineering the parametric grade (Phase 2)
+
+`analysis/fit_params.py` is a vectorized NumPy port of the `PHOTO_GRADING` wheel transform:
+BT.709 luma zones, the same HSV hue rotation and saturation scaling, the same luminance
+offset, and the same `blending`/`balance` mix. It is pinned to `build_wheel_lut` on a 17³
+grid: the maximum difference is 5e-7, which is only the builder's 6-decimal file formatting.
+That makes a LUT probe (Mode C) and a pixel-pair fit compare against the skill's own look,
+not a lookalike.
+
+Only the wheel stage is modeled in Phase 2. `PHOTO_CORRECTION` is not, because its `eq`
+stage runs in YUV inside FFmpeg: a neutral gray ramp shifts by 0.1137 for `brightness=0.1`
+and gains chroma noise, so an sRGB model would be a lie. Correction-stage fitting and the
+residual LUT belong to the pair-mode phase.
+
+The optimizer works in the integer parameter space the contract actually accepts. That is
+not cosmetic: a float `shadows_saturation` of 0.02 keeps a zone wheel active, while rounding
+to 0 routes those pixels through the midtones wheel, and the error can jump 8×. Parameters
+and bounds come from `model.PHOTO_GRADING_PARAMS` (the contract is generated from the same
+tables), never from a second hard-coded copy. The fit is:
+
+1. a statistics seed (global wheel first, then the residual in each luma zone);
+2. a coarse joint `(hue, saturation)` grid per wheel, global first (12 hues × 5 strengths),
+   so a wheel whose hue is far from 0 can start (hue is a no-op while saturation is 0);
+3. integer coordinate descent with a shrinking step (`STEP_DECAY = 0.9`, at most 45 sweeps,
+   stop below one integer unit), accepting only improvements;
+4. a Huber loss on per-pixel ΔE_OK (`HUBER_DELTA = 0.02`) plus a tiny L2 pull toward identity
+   (`L2_PENALTY = 1e-5`), on a seeded 80/20 train/hold-out split, dropping pixels clipped in
+   either image (`≤ 0.004` or `≥ 0.996`).
+
+`fit_wheel_grade` reports integer params, train and held-out mean/p95 ΔE_OK, the dropped
+clipped fraction, the settings used, and `identifiability_warnings`. A warning is produced
+when a parameter sits at a bound, when a 5%-of-range step moves these pixels only weakly
+(RMS ΔE_OK < 0.0015, so the pair does not constrain it), or when two active parameters'
+finite-difference directions correlate above 0.95. Warnings are facts about this pair of
+images, not a claim that the grade is wrong.
+
+`analysis/probe_lut.py` is Mode C. It parses a `.cube` with `lutio.read_cube` (3D only,
+10 MiB cap, dense `[b, g, r, 3]` table), applies it with the same trilinear interpolation
+FFmpeg uses, and probes it with 64 neutral grays, 12 hues × 3 chroma × 3 luma patches, and
+4,096 seeded sRGB colors (4,268 points). It reports the neutral ramp, black lift, white
+roll-off, tint versus luma in eight bins, and chroma ratio plus hue shift per 30° sector.
+It then runs the same wheel fit. If the held-out mean ΔE_OK is at most 0.02, the LUT is
+`expressible_as_wheels`; otherwise the message says so plainly and points at
+`PHOTO_LUT_APPLY`, while still returning the best-fit params.
+
+Measured on synthetic grades (the acceptance suite): a 33³ warm LUT probes back to
+shadows 210/18/−6, highlights 40/32/7, global 30/9/3, blending 80, balance 11 against the
+truth 210/22/−5, 40/30/8, 30/12/3, 80, 10; held-out mean/p95 0.0075/0.0201. A 33³ teal LUT
+probes to 0.0087/0.0121. Pure-parametric pair fits on a balanced scene recover the grade on
+a different held-out scene with mean 0.0007–0.0055 and p95 at most 0.0098. Identity fits are
+exact. The suite also confirms a per-channel gamma LUT is not expressible as wheels.
+
+Not in Phase 2: the `PHOTO_REVERSE_ENGINEER` operation/orchestrator, the residual LUT,
+limitation detection and confidence, and Mode B look extraction. Those are later phases.
+
 ## Critic and optimizer (optional `analysis` extra)
 
 `critic.py` implements the measurement loop. It needs `numpy` and `Pillow` (the `[analysis]`
