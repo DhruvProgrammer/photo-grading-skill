@@ -32,9 +32,13 @@ overcooked      mean OKLab distance from the original, penalized past 0.10
 Hue in the target is an *OKLab* hue angle, not HSV: 0 deg = red/magenta (+a), 90 deg =
 yellow (+b), 180 deg = green (-a), 270 deg = blue (-b). Teal is about 200, orange about 55.
 
-Requires the optional `critic` extra::
+Requires the optional `analysis` extra (also published as `critic`)::
 
-    pip install -e ".[critic]"
+    pip install -e ".[analysis]"
+
+Colour math and LUT interpolation live in `photo_grading.analysis`; the names are
+re-exported here so existing callers of `critic.rgb_to_oklab`, `critic.apply_lut_numpy` and
+friends keep working.
 """
 from __future__ import annotations
 
@@ -42,6 +46,10 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from .analysis.colorspace import (hue_deg, hue_diff, linear_to_srgb, oklab_to_rgb,
+                                  rgb_to_oklab, srgb_to_linear, _np)
+from .analysis.descriptors import colorfulness_m3, describe
+from .analysis.lutio import apply_lut_numpy
 from .errors import PhotoError
 
 REPORT_SCHEMA = "photo-grading/report@1"
@@ -101,27 +109,9 @@ TOLERANCES: Dict[str, float] = {
     "overcooked_scale": 0.10,  # distance beyond the free limit that costs the full weight
 }
 
-# OKLab matrices (Bjorn Ottosson). Linear sRGB -> LMS -> OKLab.
-_M1 = ((0.4122214708, 0.5363325363, 0.0514459929),
-       (0.2119034982, 0.6806995451, 0.1073969566),
-       (0.0883024619, 0.2817188376, 0.6299787005))
-_M2 = ((0.2104542553, 0.7936177850, -0.0040720468),
-       (1.9779984951, -2.4285922050, 0.4505937099),
-       (0.0259040371, 0.7827717662, -0.8086757660))
-_MAT_CACHE: Dict[str, Any] = {}
-
-
 # ---------------------------------------------------------------- dependencies
-def _np():
-    """Import numpy lazily so the core image operations keep working without the extra."""
-    try:
-        import numpy as np
-    except ImportError as e:  # pragma: no cover - exercised only without the extra
-        raise PhotoError("DEPENDENCY_ERROR",
-                         "the critic needs numpy; install the optional extra: "
-                         "pip install -e \".[critic]\"",
-                         {"missing": "numpy", "extra": "critic", "error": str(e)})
-    return np
+# `_np` is imported from analysis.colorspace so the critic and the analysis package share one
+# lazy importer and one DEPENDENCY_ERROR message.
 
 
 def _pil():
@@ -135,53 +125,9 @@ def _pil():
     return Image
 
 
-def _mats():
-    np = _np()
-    if "m1" not in _MAT_CACHE:
-        _MAT_CACHE["m1"] = np.asarray(_M1, dtype=np.float64)
-        _MAT_CACHE["m2"] = np.asarray(_M2, dtype=np.float64)
-        _MAT_CACHE["m1i"] = np.linalg.inv(_MAT_CACHE["m1"])
-        _MAT_CACHE["m2i"] = np.linalg.inv(_MAT_CACHE["m2"])
-    return _MAT_CACHE
-
-
 # ---------------------------------------------------------------- colour math
-def srgb_to_linear(c):
-    np = _np()
-    c = np.asarray(c, dtype=np.float64)
-    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
-
-
-def linear_to_srgb(c):
-    np = _np()
-    c = np.clip(np.asarray(c, dtype=np.float64), 0.0, 1.0)
-    return np.where(c <= 0.0031308, 12.92 * c, 1.055 * c ** (1.0 / 2.4) - 0.055)
-
-
-def rgb_to_oklab(rgb):
-    """sRGB 0..1 (..., 3) -> OKLab (..., 3)."""
-    np = _np()
-    m = _mats()
-    lms = np.cbrt(srgb_to_linear(rgb) @ m["m1"].T)
-    return lms @ m["m2"].T
-
-
-def oklab_to_rgb(lab):
-    """OKLab (..., 3) -> sRGB 0..1 (..., 3), clipped to the display gamut."""
-    np = _np()
-    m = _mats()
-    lms = (np.asarray(lab, dtype=np.float64) @ m["m2i"].T) ** 3
-    return np.clip(linear_to_srgb(lms @ m["m1i"].T), 0.0, 1.0)
-
-
-def hue_deg(a, b):
-    np = _np()
-    return np.degrees(np.arctan2(b, a)) % 360.0
-
-
-def hue_diff(h1: float, h2: float) -> float:
-    """Smallest circular difference between two hue angles, degrees."""
-    return abs((float(h1) - float(h2) + 180.0) % 360.0 - 180.0)
+# `rgb_to_oklab`, `oklab_to_rgb`, `hue_deg` and `hue_diff` are imported from
+# analysis.colorspace and re-exported here so existing callers keep working.
 
 
 def _smoothstep(edge0, edge1, x):
@@ -244,14 +190,7 @@ def normalize_target(target: Any, path: str = "target") -> Dict[str, float]:
 
 
 # ---------------------------------------------------------------- analysis
-def colorfulness_m3(rgb) -> float:
-    """Hasler & Suesstrunk (2003) M3 colourfulness on sRGB 0..255. Same code every time."""
-    np = _np()
-    rgb = np.asarray(rgb, dtype=np.float64) * 255.0
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-    rg = r - g
-    yb = 0.5 * (r + g) - b
-    return float(np.hypot(rg.std(), yb.std()) + 0.3 * np.hypot(rg.mean(), yb.mean()))
+# `colorfulness_m3` is imported from analysis.descriptors and re-exported here.
 
 
 def _zone_tint(lab, ref_lab, mask) -> Dict[str, Any]:
@@ -491,36 +430,7 @@ def build_grade_lut(params: Dict[str, Any], size: int = DEFAULT_LUT_SIZE,
             "bytes": Path(path).stat().st_size}
 
 
-def apply_lut_numpy(rgb, table, size: int):
-    """Trilinear interpolation of a .cube table in (blue, green, red) axis order. This mirrors
-    ffmpeg's lut3d so the proxy score matches the eventual render."""
-    np = _np()
-    x = np.clip(np.asarray(rgb, dtype=np.float64), 0.0, 1.0) * (size - 1)
-    i0 = np.floor(x).astype(np.int32)
-    i1 = np.minimum(i0 + 1, size - 1)
-    f = x - i0
-    r0, g0, b0 = i0[:, 0], i0[:, 1], i0[:, 2]
-    r1, g1, b1 = i1[:, 0], i1[:, 1], i1[:, 2]
-    fr, fg, fb = f[:, 0], f[:, 1], f[:, 2]
-    c000 = table[b0, g0, r0]
-    c001 = table[b0, g0, r1]
-    c010 = table[b0, g1, r0]
-    c011 = table[b0, g1, r1]
-    c100 = table[b1, g0, r0]
-    c101 = table[b1, g0, r1]
-    c110 = table[b1, g1, r0]
-    c111 = table[b1, g1, r1]
-    w000 = (1 - fr) * (1 - fg) * (1 - fb)
-    w001 = fr * (1 - fg) * (1 - fb)
-    w010 = (1 - fr) * fg * (1 - fb)
-    w011 = fr * fg * (1 - fb)
-    w100 = (1 - fr) * (1 - fg) * fb
-    w101 = fr * (1 - fg) * fb
-    w110 = (1 - fr) * fg * fb
-    w111 = fr * fg * fb
-    return (c000 * w000[:, None] + c001 * w001[:, None] + c010 * w010[:, None]
-            + c011 * w011[:, None] + c100 * w100[:, None] + c101 * w101[:, None]
-            + c110 * w110[:, None] + c111 * w111[:, None])
+# `apply_lut_numpy` is imported from analysis.lutio and re-exported here.
 
 
 # ---------------------------------------------------------------- optimizer
@@ -583,12 +493,13 @@ def _public_lut(lut: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def analyze_file(image: str, reference: Optional[str] = None,
-                 max_pixels: int = DEFAULT_MAX_PIXELS) -> Dict[str, Any]:
+                 max_pixels: int = DEFAULT_MAX_PIXELS, seed: int = 0) -> Dict[str, Any]:
     rgb, ref, meta, ref_meta = load_pair(image, reference, max_pixels)
     metrics = analyze_rgb(rgb, ref)
     return {"schema": REPORT_SCHEMA, "ok": True, "kind": "analyze",
             "image": str(image), "reference": str(reference or image),
-            "sample": meta, "reference_sample": ref_meta, "metrics": metrics}
+            "sample": meta, "reference_sample": ref_meta, "metrics": metrics,
+            "descriptors": describe(rgb, seed=seed)}
 
 
 def score_file(image: str, target: Any, reference: Optional[str] = None,
