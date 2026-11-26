@@ -26,6 +26,20 @@ All notable changes to photo-grading-skill are documented in this file. The form
 - CLI `analyze`, `score`, `optimize`; optional `[analysis]` extra (`numpy`, `Pillow`);
   `[critic]` is kept as a compatibility alias. `analyze --seed`.
 - `write_cube(..., directory=...)` and a quoted absolute-path form for `lut3d`.
+- `analysis/fit_params.py`: a vectorized NumPy port of the `PHOTO_GRADING` wheel transform
+  (pinned to `build_wheel_lut` on a 17³ grid, max difference 5e-7) and a deterministic
+  integer-space fit. It seeds from OKLab statistics, searches a coarse (hue, saturation) grid,
+  then runs coordinate descent on a Huber ΔE_OK loss with a small L2 pull and an 80/20
+  train/hold-out split. Reports integer params, train/held-out mean and p95 ΔE_OK, the
+  dropped clipped fraction, settings, and `identifiability_warnings` (bound, weak effect,
+  correlation).
+- `analysis/probe_lut.py`: Mode C. Parses a 3D `.cube` with the new `lutio.read_cube`, probes
+  64 neutral grays + 12 hues × 3 chroma × 3 luma patches + 4,096 seeded colors, reports the
+  neutral ramp, black lift, white roll-off, tint versus luma and per-sector chroma/hue shift,
+  and fits the same wheel model. Says "not expressible as wheels" above 0.02 held-out mean
+  ΔE_OK and points at `PHOTO_LUT_APPLY`.
+- `lutio.read_cube`: a size-checked 3D `.cube` parser (10 MiB cap, size 2..256, comments and
+  the standard header, dense `[b, g, r, 3]` table).
 
 ### Changed
 
@@ -38,8 +52,11 @@ All notable changes to photo-grading-skill are documented in this file. The form
 
 ### Tests
 
-- 86 unit tests, including 14 critic/optimizer tests and 9 analysis tests. The analysis tests
-  include a real-FFmpeg `lut3d` parity check: mean ΔE_OK < 0.01, p95 < 0.02.
+- 103 unit tests, including 14 critic/optimizer tests, 9 analysis tests and 17 reverse-
+  engineering tests. The analysis tests include a real-FFmpeg `lut3d` parity check: mean
+  ΔE_OK < 0.01, p95 < 0.02. The reverse-engineering tests add a model/builder parity check
+  (5e-7), pure-grade round-trips on a held-out scene (mean < 0.01, p95 < 0.03), identity and
+  determinism, and Mode C on known and deliberately non-wheel LUTs.
 
 ## [0.1.0] — 2026-11-22
 
