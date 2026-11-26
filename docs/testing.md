@@ -1,6 +1,6 @@
 # Testing
 
-`python -m pytest -q` from the repo root. 86 tests, nothing skipped, no mocks of the
+`python -m pytest -q` from the repo root. 103 tests, nothing skipped, no mocks of the
 execution layer beyond path-policy fixtures (unit level). The analysis/critic tests skip if the
 optional `[analysis]` extra (numpy + Pillow; `[critic]` is an alias) is not installed.
 
@@ -32,6 +32,41 @@ optional `[analysis]` extra (numpy + Pillow; `[critic]` is an alias) is not inst
   LUT-argument quoting for absolute Windows paths, and DAG input wiring.
 - **tests/test_transcript_tips.py** (6) — `PHOTO_GRADING.strength`, `PHOTO_LUT_APPLY.strength`
   and `PHOTO_CORRECTION.grain`.
+- **tests/test_rea_roundtrip.py** (11) — Phase 2 acceptance: the vectorized wheel model vs
+  `build_wheel_lut` on a 17³ grid (max difference < 1e-5), identity fit, five known pure
+  grades fitted on one balanced scene and applied to a different held-out scene (mean ΔE_OK
+  < 0.01, p95 < 0.03), parameter deviations above 10% of range must be named in
+  `identifiability_warnings`, determinism, clipped-pixel reporting, and input validation.
+- **tests/test_rea_lut_probe.py** (6) — Mode C: the probe set's sizes/seed determinism, an
+  identity LUT is a reported no-op, a known 33³ wheel LUT recovers its main params, a
+  per-channel gamma LUT is reported as not expressible with the `PHOTO_LUT_APPLY` message,
+  missing/malformed `.cube` errors, and the red-fastest cube axis order.
+
+The two Phase 2 files take about 30 seconds because several tests run the real fit. They are
+not mocked: a fitted parameter set is applied to a different image and measured in OKLab.
+
+## Reverse-engineering results (Phase 2)
+
+Measured by `tests/test_rea_roundtrip.py` and `tests/test_rea_lut_probe.py` (and reproduced in
+`docs/decisions.md` ADR-10):
+
+- Model/builder parity: max absolute difference 5e-7 on a 17³ grid (the builder writes six
+  decimal places).
+- Identity: the fit returns all wheel params 0, blending 50/100 (both identity here), and an
+  output difference of exactly 0.
+- Pure grades, fit on one balanced 64×80 scene, applied to a different seed:
+  global 0.0024/0.0061, shadows 0.0013/0.0066, highlights 0.0007/0.0059, teal
+  0.0041/0.0081, warm 0.0055/0.0098 (mean/p95 ΔE_OK).
+- Mode C on a 33³ warm LUT: shadows 210/18/−6, highlights 40/32/7, global 30/9/3, blending
+  80, balance 11 (truth 210/22/−5, 40/30/8, 30/12/3, 80, 10); held-out mean/p95
+  0.0075/0.0201. On a 33³ teal LUT: 0.0087/0.0121.
+- A per-channel gamma LUT: not expressible as wheels, held-out mean 0.0425, message points
+  at `PHOTO_LUT_APPLY`.
+
+Known limits: shadow saturation is often weakly identified on these synthetic scenes (a
+near-saturated dark pixel barely changes when the wheel saturation scales), so the fit flags
+it instead of claiming an exact slider value. The existing `eq`-based `PHOTO_CORRECTION` is
+not part of this fit; it is Phase 3.
 
 ## Real-photo validation
 
