@@ -227,6 +227,19 @@ A learned aesthetic model (e.g. LAION) is deliberately not part of the score. If
 later, it may only **rank candidates of the same image**; an absolute learned score would
 reintroduce the judgment this skill exists to avoid.
 
+### Reverse-engineering (in progress)
+
+The same `[analysis]` extra contains the Phase 2 building blocks for recovering an existing
+look, with no new request operation yet. `analysis/fit_params.py` fits the `PHOTO_GRADING`
+wheels to an aligned before/after pair in OKLab: a vectorized port of the skill's own wheel
+transform, an integer-space coordinate descent on a Huber ΔE_OK loss, and an 80/20
+train/hold-out split. `analysis/probe_lut.py` reads a 3D `.cube`, reports its neutral ramp,
+black lift, white roll-off, tint versus luma and per-hue-sector measurements, then fits the
+same wheels and says whether the LUT is expressible as wheels or should keep using
+`PHOTO_LUT_APPLY`. Both are deterministic and return integer params plus held-out ΔE_OK;
+neither judges the look. The `PHOTO_REVERSE_ENGINEER` operation, residual LUT, confidence and
+reference-only mode arrive in later phases.
+
 ## Deterministic execution
 
 Every operation gets an identity — `sha256` over canonical JSON of `{type, parameters,
