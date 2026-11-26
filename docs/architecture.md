@@ -33,7 +33,7 @@ photo-grading/request@1 (stdin)
 | `PHOTO_CORRECTION` | `white_balance_temperature` (2500-10000), `white_balance_tint` (-100..100), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `vibrance` (-100..100), `sharpness` (0..100), `clarity` (0..100), `grain` (0..50, default 0), `tone_blacks`/`tone_shadows`/`tone_midtones`/`tone_highlights`/`tone_whites` (0..2, defaults 0, 0.15, 0.5, 0.85, 1.0) | `ffmpeg eq` + a white-balance LUT (`buildlut.build_wb_lut`, normalized channel gains, black-preserving) + a vibrance LUT (`build_vibrance_lut`, weighted, low-chroma gated) + a levels LUT (`build_levels_lut`) + a tone-curve LUT (`build_tone_curve_lut`, piecewise-linear anchors on BT.709 luma) via `lut3d` + `unsharp` (sharpness) + `cas` (clarity) + `noise=alls=N` (film grain) |
 | `PHOTO_LUT_APPLY` | `lut_path` (required, `.cube`), `strength` (0..1, default 1.0) | `ffmpeg lut3d` on the caller's LUT (scaled toward identity via `buildlut.scale_lut_strength` when `strength < 1`) |
 | `PHOTO_HSV` (user feedback #4: per-color HSL tuning) | `red_*`, `orange_*`, `yellow_*`, `green_*`, `cyan_*`, `blue_*`, `magenta_*` (`_hue` -100..100 = -40..40 degrees, `_saturation` -100..100, `_luminance` -100..100; defaults 0/0/0 per family) | HSL per-hue-family tweaks via `buildlut.build_hsl_lut`: normalized soft Gaussian family weights (no hard mask edges), applied only above ~30% saturation so neutral texture is never tinted; soft-headroom saturation/luminance via `lut3d` |
-| `PHOTO_ANALYZE` | `max_pixels` (1000..5,000,000, default 250,000) | Pass-through: re-encode the input losslessly, attach an OKLab `report` (`critic.analyze_file`). No pixels change |
+| `PHOTO_ANALYZE` | `max_pixels` (1000..5,000,000, default 250,000), `seed` (0..4,294,967,295, default 0) | Pass-through: re-encode the input losslessly, attach an OKLab `report` and look `descriptors` (`critic.analyze_file`). No pixels change |
 | `PHOTO_SCORE` | `target` (six required numbers: `shadow_hue`, `highlight_hue`, `tint_mag`, `colorfulness`, `median_L`, `spread`), `max_pixels` | `PHOTO_ANALYZE` plus `critic.score_metrics`: 0..100, every penalty term with measured value, target and tolerance |
 | `PHOTO_OPTIMIZE` | `target`, `iterations` (1..200, default 40), `proxy_size` (64..1024, default 384), `lut_size` (17/33/65, default 33) | `critic.optimize_file`: deterministic coordinate descent on a proxy, bake the winner into a `.cube` LUT, rescore the proxy through numpy trilinear interpolation, render once at full size via `lut3d`, re-check the full render and fall back to an identity LUT if it would regress |
 | `WHITE_BALANCE` (alias) | temperature/tint only, resolved to `PHOTO_CORRECTION` at validation | same as `PHOTO_CORRECTION` |
@@ -72,11 +72,39 @@ of assigning a pixel to its nearest family.
 HSV→RGB uses the standard six-sector table and is covered by a round-trip test: the original
 table had all six sectors scrambled, which corrupted every hue rotation in the skill.
 
-## Critic and optimizer (optional `critic` extra)
+## Analysis package
 
-`critic.py` implements the measurement loop. It needs `numpy` and `Pillow` (the `[critic]`
-extra); importing the module does not import either, so the core operations keep working
-without the extra.
+`src/photo_grading/analysis/` holds the colour math, the LUT interpolator and the
+descriptors. `critic.py` imports and re-exports them, so `critic.rgb_to_oklab` and friends still
+work. The package needs `numpy` and `Pillow` (the `[analysis]` extra; `[critic]` is a
+compatibility alias); NumPy is imported lazily, so importing `analysis` and the core operations
+works without the extra.
+
+- `colorspace.py` — linear sRGB ⇄ OKLab (Bjorn Ottosson's matrices), OKLab ⇄ OKLCH, and the
+  hue angle. Hue is an angle in the OKLab a/b plane: 0 = red/magenta (+a), 90 = yellow (+b),
+  180 = green (−a), 270 = blue (−b). It is absolute, not an HSV hue and not a wheel rotation.
+- `lutio.py` — `apply_lut_numpy`, a trilinear interpolation of a `.cube` table in
+  (blue, green, red) axis order. A parity test runs the same source and LUT through real
+  FFmpeg `lut3d` and through this function: the mean ΔE_OK between the two must stay under
+  0.01, and the 95th percentile under 0.02. That is what lets the optimizer score a proxy
+  and trust the full render.
+- `descriptors.py` — target-free measurements of one image: OKLab L percentiles 1/5/25/50/
+  75/95/99, zone tints (shadow/midtone/highlight mean (a,b) minus the whole-image mean),
+  mean and p90 chroma, M3 colourfulness, mean chroma in 12 fixed 30° hue sectors, a seeded
+  five-colour OKLab palette, and rough skin-band stats. The palette is k-means++ in OKLab
+  (hue is circular, so clustering runs on a/b and centres are reported in OKLCH), up to
+  20,000 evenly-spaced samples, 50 iterations, sorted by weight; zero-weight clusters are
+  dropped. `seed` (default 0) makes it reproducible.
+
+Descriptors are scene-mixed measurements, not a grade. `describe()` runs only in
+`analyze_file`/`PHOTO_ANALYZE`; the optimizer's per-iteration path calls `analyze_rgb`, so
+the palette never enters the search loop.
+
+## Critic and optimizer (optional `analysis` extra)
+
+`critic.py` implements the measurement loop. It needs `numpy` and `Pillow` (the `[analysis]`
+extra, also published as `[critic]`); importing the module does not import either, so the core
+operations keep working without the extra.
 
 - **Target.** Six required numbers, no look names. Hue is an OKLab hue angle (0 = red/magenta,
   90 = yellow, 180 = green, 270 = blue; teal ~200, orange ~55), absolute — unlike a wheel hue,
