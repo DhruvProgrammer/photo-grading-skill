@@ -14,8 +14,10 @@ keywords = ["photo", "color", "grading", "color-grading", "lut", "photoshop", "l
 dependencies = []
 
 [project.optional-dependencies]
-# PHOTO_ANALYZE / PHOTO_SCORE / PHOTO_OPTIMIZE need the critic extra. The core operations stay
-# standard-library + FFmpeg only.
+# PHOTO_ANALYZE / PHOTO_SCORE / PHOTO_OPTIMIZE need the analysis extra (numpy + Pillow).
+# `critic` is kept as a compatibility alias for the name used before the analysis package.
+# The core operations stay standard-library + FFmpeg only.
+analysis = ["numpy>=1.24", "Pillow>=10"]
 critic = ["numpy>=1.24", "Pillow>=10"]
 
 [project.scripts]
