@@ -59,10 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
     i = sub.add_parser("inspect", help="objective pixel statistics of a photo (clipping, saturation, cast)")
     i.add_argument("image")
     _add_common(i)
-    a = sub.add_parser("analyze", help="OKLab report of a photo (no score, no target)")
+    a = sub.add_parser("analyze", help="OKLab report and look descriptors of a photo (no score)")
     a.add_argument("image")
     a.add_argument("--reference", help="original image to measure deltas against (default: the image itself)")
     a.add_argument("--max-pixels", type=int, default=critic.DEFAULT_MAX_PIXELS)
+    a.add_argument("--seed", type=int, default=0, help="seed for the palette k-means (default 0)")
     a.add_argument("--workspace")
     _add_common(a)
     s = sub.add_parser("score", help="score a photo against a caller-supplied target look")
@@ -184,6 +185,12 @@ def _print_report(rep: dict) -> None:
               f"clip hi {m['white_clip_pct']:.2f}% lo {m['black_clip_pct']:.2f}%  "
               f"M3 {m['colorfulness_m3']:.1f}  cast a {m['cast_a']:+.3f} b {m['cast_b']:+.3f}  "
               f"skin shift {m['skin_hue_shift_deg']:.2f} deg")
+        d = rep.get("descriptors")
+        if d:
+            t = d["tone"]
+            print(f"tone p01 {t['p01']:.3f} p50 {t['p50']:.3f} p99 {t['p99']:.3f}  "
+                  f"palette {len(d['palette']['colors'])}  "
+                  f"skin {d['skin']['share'] * 100.0:.2f}%")
     elif kind in ("score", "optimize"):
         if kind == "score":
             print(f"score {rep['score']:.2f}/100 (penalty {rep['total_penalty']:+.2f})")
@@ -278,7 +285,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 src = policy.check_input(args.image, "input")
                 ref = str(policy.check_input(args.reference, "reference")) if args.reference else None
                 if args.cmd == "analyze":
-                    doc = critic.analyze_file(str(src), ref, args.max_pixels)
+                    doc = critic.analyze_file(str(src), ref, args.max_pixels, seed=args.seed)
                 else:
                     doc = critic.score_file(str(src), _read_target(args.target), ref, args.max_pixels)
             else:
