@@ -70,3 +70,29 @@ improving steps, bakes the winner into a LUT, re-scores through the LUT path and
 full render with an identity fallback. It is safe, not globally optimal; a learned aesthetic
 score would reintroduce judgment and is excluded (if added, ranking candidates of the same
 image only).
+
+## ADR-09 — Analysis lives in `analysis/`; descriptors describe, they do not grade
+
+`src/photo_grading/analysis/` owns the shared colour math (`colorspace.py`), the trilinear LUT
+interpolator (`lutio.py`) and the target-free descriptors (`descriptors.py`). `critic.py`
+imports and re-exports those names, so existing imports and tests keep working; there is one
+implementation, not a copy in each module. `[analysis]` is the extra (numpy + Pillow), and
+`[critic]` stays as a compatibility alias.
+
+The LUT interpolator is checked against real FFmpeg `lut3d` in the test suite: mean ΔE_OK
+< 0.01 and p95 < 0.02. That threshold is the contract that lets the optimizer trust a proxy
+score for a full-size render.
+
+`PHOTO_ANALYZE` adds descriptors with no fitting and no target: OKLab L percentiles
+1/5/25/50/75/95/99, zone tints (zone mean (a,b) minus the whole-image mean, so a global cast is
+removed but the scene's own colour is not), mean/p90 chroma, M3, 12 fixed 30° hue sectors, a
+seeded five-colour palette and rough skin-band stats. The palette is k-means++ in OKLab —
+clustering on a/b handles the circular hue, and centres are reported in OKLCH — with up to
+20k evenly-spaced samples, 50 iterations, and output sorted by weight so cluster-label order
+cannot change the report. `seed` (default 0) makes it reproducible. Descriptors run only in
+`analyze_file`/`PHOTO_ANALYZE`, never per optimizer iteration.
+
+**Why**: the reverse-engineering work needs one measured vocabulary before any fitting, and a
+descriptor is an observation, not a recommendation. A palette from one photo is not a grade to
+copy onto another; it is evidence a caller can use to build a target by hand.
+
