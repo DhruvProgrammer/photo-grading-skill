@@ -296,7 +296,8 @@ class Executor:
         self._check_readable(dst)
         max_pixels = int(op.parameters.get("max_pixels", critic.DEFAULT_MAX_PIXELS))
         if op.type == "PHOTO_ANALYZE":
-            report = critic.analyze_file(str(src), str(reference), max_pixels)
+            report = critic.analyze_file(str(src), str(reference), max_pixels,
+                                         seed=int(op.parameters.get("seed", 0)))
         else:
             report = critic.score_file(str(src), op.parameters["target"], str(reference), max_pixels)
         stats = self.signalstats(src)
