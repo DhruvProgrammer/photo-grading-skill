@@ -190,9 +190,12 @@ def _critic_doc(op_type, params):
 
 
 def test_analyze_op_takes_no_target():
-    p = parse_request(_critic_doc("PHOTO_ANALYZE", {"max_pixels": 10000}))
+    p = parse_request(_critic_doc("PHOTO_ANALYZE", {"max_pixels": 10000, "seed": 7}))
     assert p.operations[0].type == "PHOTO_ANALYZE"
     assert p.operations[0].parameters["max_pixels"] == 10000
+    assert p.operations[0].parameters["seed"] == 7
+    with pytest.raises(PhotoError):
+        parse_request(_critic_doc("PHOTO_ANALYZE", {"seed": -1}))
 
 
 def test_score_op_requires_a_complete_numeric_target():
