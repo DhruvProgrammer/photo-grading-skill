@@ -12,7 +12,7 @@ prints the contract; `doctor --json` the environment; `plan - --json` a dry run;
 (clipping, saturation, neon share, neutral-pixel white-balance cast) + warnings;
 `analyze IMAGE --json` an OKLab report; `score IMAGE --target TARGET --json` a score against
 a caller-supplied target; `optimize IMAGE --target TARGET --out FILE --json` the critic loop
-plus a full-size LUT render. The last three need `pip install -e ".[critic]"`.
+plus a full-size LUT render. The last three need `pip install -e ".[analysis]"`.
 
 Rules for a calling agent:
 1. Decide first: which operation, which look (the caller already did this). This skill has
@@ -28,8 +28,9 @@ Rules for a calling agent:
    `tone_highlights`/`tone_whites` (0..2). `PHOTO_HSV`: `red_*`/`orange_*`/`yellow_*`/`green_*`/
    `cyan_*`/`blue_*`/`magenta_*` with `_hue` (-100..100 = -40..40 degrees), `_saturation`
    (-100..100), `_luminance` (-100..100). `PHOTO_LUT_APPLY`: `lut_path` (required), `strength` (0..1).
-   `PHOTO_ANALYZE`: `max_pixels`. `PHOTO_SCORE`: `target` + `max_pixels`. `PHOTO_OPTIMIZE`:
-   `target`, `iterations` (default 40), `proxy_size` (default 384), `lut_size` (17/33/65, default 33).
+   `PHOTO_ANALYZE`: `max_pixels`, `seed` (palette k-means, default 0). `PHOTO_SCORE`: `target` +
+   `max_pixels`. `PHOTO_OPTIMIZE`: `target`, `iterations` (default 40), `proxy_size` (default 384),
+   `lut_size` (17/33/65, default 33).
    Prefer `vibrance` over `saturation` for "make it vibrant": it protects already-saturated
    pixels and leaves low-chroma texture alone.
 3. Never send commands, argv, filter strings or executable paths: the request is rejected.
@@ -56,6 +57,9 @@ Critic rules (PHOTO_ANALYZE / PHOTO_SCORE / PHOTO_OPTIMIZE):
 - Cast is measured and reported but not penalized. A target tint below 0.005 is treated as no
   tint. A learned aesthetic model is not part of the score; if one is added, it may only rank
   candidates of the same image.
+- `PHOTO_ANALYZE` also reports look descriptors (tone percentiles, zone tints, 12 hue sectors,
+  a seeded palette, skin-band stats). They describe the photo's pixels, including its scene
+  colour; they are not a target and not a grade recommendation.
 
 Wheel semantics (PHOTO_GRADING): zones are BT.709 luma bands (shadows/midtones/highlights).
 Each wheel with `saturation > 0` rotates a pixel's hue by the wheel's hue and scales its
