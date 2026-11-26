@@ -16,7 +16,8 @@ Operations:
   neighbouring colors blend instead of posterizing).
 - PHOTO_LUT_APPLY  apply a 3D .cube LUT with ffmpeg lut3d; requires lut_path.
 - PHOTO_ANALYZE  pass-through measurement: copy the input and attach an OKLab `report`
-  (exposure, contrast, clipping, cast, Hasler-Suesstrunk colourfulness, tint, skin shift).
+  (exposure, contrast, clipping, cast, Hasler-Suesstrunk colourfulness, tint, skin shift)
+  plus look descriptors (tone percentiles, zone tints, hue sectors, seeded palette).
 - PHOTO_SCORE    pass-through measurement: PHOTO_ANALYZE plus a caller-supplied target look
   and a 0..100 score with every penalty term listed. The target is numbers, never a look name.
 - PHOTO_OPTIMIZE deterministic coordinate descent of the 8 grade parameters against the target,
@@ -208,7 +209,9 @@ _TARGET_PARAM = {"type": "object", "required": True, "fields": TARGET_SPEC,
                  "description": "caller-supplied target look; every field is a number, no look names"}
 _MAX_PIXELS = {"type": "int", "min": 1000, "max": 5000000, "default": 250000,
                "description": "pixels sampled from the full image for analysis (stride, no resize)"}
-PHOTO_ANALYZE_PARAMS: Dict[str, Dict[str, Any]] = {"max_pixels": _MAX_PIXELS}
+_SEED = {"type": "int", "min": 0, "max": 4294967295, "default": 0,
+         "description": "seed for the deterministic palette k-means (default 0)"}
+PHOTO_ANALYZE_PARAMS: Dict[str, Dict[str, Any]] = {"max_pixels": _MAX_PIXELS, "seed": _SEED}
 PHOTO_SCORE_PARAMS: Dict[str, Dict[str, Any]] = {"target": _TARGET_PARAM, "max_pixels": _MAX_PIXELS}
 PHOTO_OPTIMIZE_PARAMS: Dict[str, Dict[str, Any]] = {
     "target": _TARGET_PARAM,
