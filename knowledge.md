@@ -802,6 +802,29 @@ Score = 100 + Σ penalties. Every term reports its measured value, target and to
 low score is diagnosable rather than mysterious. A target tint below 0.005 is treated as no
 tint: chasing the hue of an invisible tint just makes the optimizer add chroma to satisfy noise.
 
+### Look descriptors
+
+`PHOTO_ANALYZE` also reports descriptors that need no target and no fitting. They are
+measurements of the pixels, not a grade:
+
+- **Tone percentiles** — OKLab L at 1, 5, 25, 50, 75, 95 and 99. p1 is the black point, p99
+  the white roll-off; p95 − p5 is the robust spread.
+- **Zone tint** — mean (a,b) of the shadow (below p25), midtone and highlight (above p75)
+  pixels, each minus the whole-image mean (a,b), reported as hue and magnitude. Subtracting
+  the image mean removes a global cast but not the scene's own colour: a green forest still
+  reads green.
+- **Saturation** — mean and p90 OKLab chroma, M3, and mean chroma in twelve fixed 30-degree
+  hue sectors. A sector's `share` is the fraction of chromatic pixels in that bin.
+- **Palette** — seeded k-means (k=5, up to 20k samples) reported in OKLCH with weights. Hue is
+  circular, so the clustering runs on a/b and the centres are converted back to OKLCH; the
+  result is sorted by weight so cluster-label order cannot change the report.
+- **Skin** — rough orange/mid-L band stats when at least 50 pixels and 0.5% of the sample
+  match. A heuristic, not face detection.
+
+Descriptors are scene-mixed. They are useful as a starting point for a target you build by
+hand, but a descriptor from one photo is not a grade to copy onto another. For a target,
+measure a reference whose look you want, then use the six target numbers.
+
 The optimizer searches eight parameters (`exposure`, `contrast`, `saturation`, `sh_hue`,
 `sh_amt`, `hi_hue`, `hi_amt`, `balance`) by coordinate descent: fixed parameter order, fixed
 step schedule, shrinking step, no RNG. Only strict improvements are accepted, so the result
@@ -923,6 +946,7 @@ Families: red, orange, yellow, green, cyan, blue, magenta. Gated below 30% satur
 |---|---|---|---|
 | `target` | six required numbers | — | `shadow_hue`, `highlight_hue`, `tint_mag`, `colorfulness`, `median_L`, `spread`; no look names, no presets |
 | `max_pixels` | 1000..5,000,000 | 250,000 | analysis sample size; a stride over the full image, not a resize |
+| `seed` | 0..4,294,967,295 | 0 | palette k-means seed; same image + seed = same descriptors |
 | `iterations` | 1..200 | 40 | coordinate-descent sweeps; deterministic |
 | `proxy_size` | 64..1024 | 384 | longest side of the proxy the loop scores |
 | `lut_size` | 17 / 33 / 65 | 33 | points per axis of the generated `.cube` |
