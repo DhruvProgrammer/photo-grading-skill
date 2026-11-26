@@ -61,8 +61,9 @@ agent or a person) decides the look; the skill executes it safely and determinis
 ## Quick start
 
 Requirements: Python 3.9+ (standard library only) and `ffmpeg` / `ffprobe` on `PATH`.
-The critic/optimizer operations need the optional extra: `pip install -e ".[critic]"`
-(numpy + Pillow). The core operations stay standard-library + FFmpeg only.
+The analysis/critic operations need the optional extra: `pip install -e ".[analysis]"`
+(numpy + Pillow; `critic` is kept as a compatibility alias). The core operations stay
+standard-library + FFmpeg only.
 
 ```bash
 # 1. install
@@ -136,7 +137,7 @@ one full-size render through `lut3d`.
 | `PHOTO_CORRECTION` | Base corrections | `white_balance_temperature` (2500-10000, default 6500), `white_balance_tint` (-100..100, default 0), `exposure` (-10..10), `contrast` (-100..100), `highlights`/`shadows`/`blacks`/`whites` (-100..100), `saturation` (-100..100), `vibrance` (-100..100), `sharpness` (0..100, default 25), `clarity` (0..100), `grain` (0..50), `chroma_denoise` (0..100, chroma-only), `tone_blacks`/`tone_shadows`/`tone_midtones`/`tone_highlights`/`tone_whites` (0..2) |
 | `PHOTO_HSV` | Per-hue-family HSL | `red_*`/`orange_*`/`yellow_*`/`green_*`/`cyan_*`/`blue_*`/`magenta_*` with `_hue` (-100..100 = -40..40°), `_saturation` (-100..100), `_luminance` (-100..100) |
 | `PHOTO_LUT_APPLY` | Apply a 3D `.cube` LUT | `lut_path` (required), `strength` (0..1) |
-| `PHOTO_ANALYZE` | OKLab measurement, no pixels changed | `max_pixels` (1000..5,000,000, default 250,000) |
+| `PHOTO_ANALYZE` | OKLab measurement + look descriptors, no pixels changed | `max_pixels` (1000..5,000,000, default 250,000), `seed` (palette k-means, default 0) |
 | `PHOTO_SCORE` | Measurement + score against a target | `target` (six required numbers, see below), `max_pixels` |
 | `PHOTO_OPTIMIZE` | Deterministic critic loop, LUT render | `target`, `iterations` (1..200, default 40), `proxy_size` (64..1024, default 384), `lut_size` (17/33/65, default 33) |
 | `WHITE_BALANCE` *(alias)* | White balance | `white_balance_temperature` + `white_balance_tint`; resolved to `PHOTO_CORRECTION` at validation |
@@ -181,10 +182,18 @@ is six numbers supplied by the caller, with no look names and no presets.
 
 `PHOTO_ANALYZE` re-encodes the input losslessly and attaches a `report` (it changes no pixels):
 median L, p05/p95 spread, clipping, near-neutral cast, M3 colourfulness, shadow/highlight tint
-hue and magnitude, skin-hue shift, mean OKLab distance. `PHOTO_SCORE` adds a 0..100 score and
-lists **every** penalty term: `exposure`, `contrast`, `clipping`, `colorfulness`,
-`shadow_hue`, `highlight_hue`, `tint_strength`, `skin`, `overcooked`. Cast is measured and
-reported but not penalized: a deliberate tint is a look, not an error.
+hue and magnitude, skin-hue shift, mean OKLab distance. It also returns **look descriptors**
+with no fitting and no target: L percentiles 1/5/25/50/75/95/99, zone tints (shadows,
+midtones, highlights minus the whole-image mean), mean and p90 chroma, mean chroma in 12 fixed
+30-degree hue sectors, a seeded five-colour OKLab palette with weights, and rough skin-band
+stats. The palette is k-means in OKLab (OKLCH with the circular hue handled through a/b),
+seeded by `seed` (default 0), so the same image and seed always give the same report.
+
+`PHOTO_SCORE` adds a 0..100 score and lists **every** penalty term: `exposure`, `contrast`,
+`clipping`, `colorfulness`, `shadow_hue`, `highlight_hue`, `tint_strength`, `skin`,
+`overcooked`. Cast is measured and reported but not penalized: a deliberate tint is a look,
+not an error. The descriptors are scene-mixed measurements, not a grade and not a look
+recommendation: a green forest reads green regardless of the grade.
 
 `PHOTO_OPTIMIZE` runs deterministic coordinate descent on a ~384 px proxy over eight
 parameters: `exposure`, `contrast`, `saturation`, `sh_hue`, `sh_amt`, `hi_hue`, `hi_amt`,
@@ -195,9 +204,9 @@ worse image than it started with; if the full render would still score below the
 image, it re-renders with an identity LUT. No RNG, no FFmpeg inside the loop.
 
 ```bash
-pip install -e ".[critic]"                 # numpy + Pillow
+pip install -e ".[analysis]"               # numpy + Pillow (.[critic] is an alias)
 
-photo-grading analyze photo.jpg --json
+photo-grading analyze photo.jpg --seed 0 --json
 photo-grading score photo.jpg --target target.json --reference original.jpg --json
 photo-grading optimize original.jpg --target target.json --out graded.png \
     --lut-out look.cube --iterations 40 --json
@@ -314,7 +323,7 @@ process exit code.
 ## Testing
 
 ```bash
-python -m pytest -q       # 77 unit + validation tests
+python -m pytest -q       # 86 unit + validation tests
 ```
 
 ## Docs
