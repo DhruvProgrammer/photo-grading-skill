@@ -72,7 +72,7 @@
   "operations": [
     {
       "type": "PHOTO_ANALYZE",
-      "description": "Pass-through measurement op: re-encodes the input losslessly and attaches an OKLab `report` (median L, p05-p95 spread, clipping, near-neutral cast, Hasler-Suesstrunk M3 colourfulness, shadow/highlight tint hue+magnitude, skin-hue shift, mean OKLab distance). It changes no pixels and decides no look.",
+      "description": "Pass-through measurement op: re-encodes the input losslessly and attaches an OKLab `report` (median L, p05-p95 spread, clipping, near-neutral cast, Hasler-Suesstrunk M3 colourfulness, shadow/highlight tint hue+magnitude, skin-hue shift, mean OKLab distance) plus look descriptors (tone percentiles 1/5/25/50/75/95/99, zone tints, 12 hue sectors, seeded OKLab palette, skin-band stats). It changes no pixels and decides no look.",
       "inputs": 1,
       "pass_through": true,
       "parameters": {
@@ -82,6 +82,13 @@
           "max": 5000000,
           "default": 250000,
           "description": "pixels sampled from the full image for analysis (stride, no resize)"
+        },
+        "seed": {
+          "type": "int",
+          "min": 0,
+          "max": 4294967295,
+          "default": 0,
+          "description": "seed for the deterministic palette k-means (default 0)"
         }
       },
       "tool": "python/numpy/Pillow+ffmpeg/lut3d",
@@ -890,7 +897,14 @@
       "proxy_px": 384,
       "lut_size": 33,
       "guarantee": "never worse than the untouched image: the optimizer accepts only improvements, the LUT path is re-scored, and the full render is re-checked with an identity-LUT fallback",
-      "optional_dependency": "critic (numpy, Pillow)"
+      "optional_dependency": "analysis (numpy, Pillow); critic is a compatibility alias"
+    },
+    "descriptors": {
+      "tone": "OKLab L percentiles 1, 5, 25, 50, 75, 95, 99",
+      "zone_tint": "mean (a,b) of the shadow/midtone/highlight quartiles minus the whole-image mean, as hue degrees and magnitude",
+      "saturation": "mean and p90 OKLab chroma, M3 colourfulness, mean chroma in 12 fixed 30-degree hue sectors",
+      "palette": "seeded k-means (k=5, up to 20k samples) reported in OKLCH with weights",
+      "skin": "rough orange/mid-L band stats when at least 50 pixels and 0.5% of the sample match; a heuristic, not face detection"
     }
   },
   "request": {
