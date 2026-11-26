@@ -96,3 +96,64 @@ cannot change the report. `seed` (default 0) makes it reproducible. Descriptors 
 descriptor is an observation, not a recommendation. A palette from one photo is not a grade to
 copy onto another; it is evidence a caller can use to build a target by hand.
 
+## ADR-10 — Phase 2 fits wheels in integer space; the thresholds below are the tuned values
+
+The Phase 2 reverse-engineering work adds two internal modules, with no new operation yet:
+
+- `analysis/fit_params.py`: a vectorized NumPy port of the `PHOTO_GRADING` wheel transform,
+  pinned to `build_wheel_lut` at 17³ (max difference 5e-7, the builder's 6-decimal rounding),
+  plus a deterministic fit.
+- `analysis/probe_lut.py`: Mode C. It parses a 3D `.cube` with `lutio.read_cube`, measures a
+  fixed probe set, and explains the result as wheel params.
+
+**Wheels only, for now.** `PHOTO_CORRECTION`'s `eq` stage runs in YUV inside FFmpeg, so it
+cannot be reproduced faithfully in sRGB. Measured: `eq=brightness=0.1` shifts a neutral gray
+ramp by 0.1137 and `eq=saturation=1.5` adds ±0.004 chroma noise. A model that claims to match
+it would be wrong. Correction-stage fitting and the residual LUT are Phase 3; until then the
+pair fit and Mode C explain the wheel stage and report the residual honestly.
+
+**Integer space, not float space.** The request contract accepts integers only. A float
+`shadows_saturation` of 0.02 keeps the shadow zone wheel active (`saturation != 0` in
+`buildlut`), while rounding it to 0 routes shadow pixels through the midtones wheel. On a 33³
+warm LUT that rounding turned a 0.005 fit into a 0.020 fit. The search therefore clamps and
+rounds every candidate before evaluating it, so the reported fit is the fit of the exact
+integers a caller will send. Hue 360 is normalized to 0.
+
+**Tuned test budgets and thresholds.** Starting values from the spec were kept unless the
+round-trip suite showed a reason to move them:
+
+| Setting | Value | Why |
+|---|---|---|
+| Huber δ | 0.02 ΔE_OK | One JND; outliers (clipping, local edits) cannot dominate |
+| L2 pull to identity | 1e-5 | Breaks ties toward the simplest wheels without changing a real fit |
+| Train/hold-out | 80/20, seeded | The reported fit is held-out; no fitting on the test pixels |
+| Max fit samples | 8,000 | Enough for 15 params; keeps a fit at a few seconds |
+| Clipped pixels | drop `≤ 0.004` / `≥ 0.996` | A clipped pixel carries no usable colour difference |
+| Coordinate descent | 45 sweeps, step ×0.9, stop < 1 unit | Integer steps; the schedule cannot oscillate |
+| Coarse wheel seed | 12 hues × 5 strengths, global first | Escapes the zero-saturation hue deadlock |
+| Weak effect | RMS ΔE_OK < 0.0015 for a 5%-of-range step | Flags a parameter the pair does not constrain |
+| Correlation warning | \|corr\| ≥ 0.95 on active parameters | Flags parameter trade-offs, not off wheels |
+| "Expressible as wheels" | held-out mean ΔE_OK ≤ 0.02 | One JND; above it the LUT needs `PHOTO_LUT_APPLY` |
+| Probe set | 64 neutral, 108 patches, 4,096 seeded colors | Matches the spec; covers neutrals, hue sectors and the full cube |
+| LUT size cap | 10 MiB, size 2..256, 3D only | Same policy as the existing LUT path |
+
+**Why these choices**: the wheel model is deliberately the skill's own transform, so the
+result can be re-applied with `PHOTO_GRADING` and checked with the existing LUT path. The
+integer search and the coarse seed were added after diagnostics, not guessed: the float fit
+looked better but returned a zone wheel that disappeared on rounding, and a pure statistics
+seed could not start a wheel whose hue was far from 0. The weak-effect warning exists because
+saturation on near-saturated shadow pixels can be visually inert (the same image fits at
+saturation 24 or 50); reporting that is more honest than pretending the parameter is unique.
+
+**Acceptance measured by the suite** (`tests/test_rea_roundtrip.py`, `tests/test_rea_lut_probe.py`):
+parity 5e-7; identity exact; five pure grades on a held-out scene mean 0.0007–0.0055, p95 at
+most 0.0098; a 33³ warm LUT probes back with held-out mean/p95 0.0075/0.0201; a 33³ teal LUT
+0.0087/0.0121; a per-channel gamma LUT is reported as not expressible. Parameters off by more
+than 10% of their range (10° for hue) must be named in `identifiability_warnings` — on the
+synthetic scenes that is mainly shadow saturation, and it is flagged.
+
+Not claimed: unique parameters. Wheels trade off (global vs midtones, saturation vs
+luminance), and a weak direction on one scene may split differently on another. The fit
+reports the image-space residual and the warning; it does not claim to recover the original
+artist's slider values.
+
