@@ -47,8 +47,9 @@ _OPERATION_DESCRIPTIONS = {
                  "(buildlut.build_hsl_lut) with ffmpeg lut3d.",
     "PHOTO_ANALYZE": "Pass-through measurement op: re-encodes the input losslessly and attaches an OKLab "
                      "`report` (median L, p05-p95 spread, clipping, near-neutral cast, Hasler-Suesstrunk M3 "
-                     "colourfulness, shadow/highlight tint hue+magnitude, skin-hue shift, mean OKLab distance). "
-                     "It changes no pixels and decides no look.",
+                     "colourfulness, shadow/highlight tint hue+magnitude, skin-hue shift, mean OKLab distance) "
+                     "plus look descriptors (tone percentiles 1/5/25/50/75/95/99, zone tints, 12 hue sectors, "
+                     "seeded OKLab palette, skin-band stats). It changes no pixels and decides no look.",
     "PHOTO_SCORE": "Pass-through measurement op: PHOTO_ANALYZE plus a caller-supplied target look (six numbers) "
                    "and a 0..100 score with every penalty term listed (exposure, contrast, clipping, "
                    "colourfulness, shadow/highlight tint hue, tint strength, skin shift, overcooked guard). "
@@ -166,7 +167,15 @@ def skill_contract() -> Dict[str, Any]:
                                  "guarantee": "never worse than the untouched image: the optimizer accepts only "
                                               "improvements, the LUT path is re-scored, and the full render is "
                                               "re-checked with an identity-LUT fallback",
-                                 "optional_dependency": "critic (numpy, Pillow)"}},
+                                 "optional_dependency": "analysis (numpy, Pillow); critic is a compatibility alias"},
+                   "descriptors": {"tone": "OKLab L percentiles 1, 5, 25, 50, 75, 95, 99",
+                                   "zone_tint": "mean (a,b) of the shadow/midtone/highlight quartiles minus the "
+                                                "whole-image mean, as hue degrees and magnitude",
+                                   "saturation": "mean and p90 OKLab chroma, M3 colourfulness, mean chroma in 12 "
+                                                 "fixed 30-degree hue sectors",
+                                   "palette": "seeded k-means (k=5, up to 20k samples) reported in OKLCH with weights",
+                                   "skin": "rough orange/mid-L band stats when at least 50 pixels and 0.5% of the "
+                                           "sample match; a heuristic, not face detection"}},
         "request": {"schema": f"{SKILL_ID}/request@{REQUEST_SCHEMA_VERSION}", "id_pattern": ID_RE.pattern,
                     "reference_pattern": REF_RE.pattern, "forbidden_fields": sorted(FORBIDDEN_KEYS),
                     "shape": {"schema": f"{SKILL_ID}/request@{REQUEST_SCHEMA_VERSION}",
