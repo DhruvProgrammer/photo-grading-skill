@@ -84,6 +84,16 @@ def _lut_arg(path: str) -> str:
     return f"'{value}'"
 
 
+def _lut_file_value(filter_expr: str) -> str:
+    """Inverse of `_lut_arg`: recover the filesystem path from a `lut3d=file='...'` filter
+    argument. The provenance step used to hash the quoted value and failed with ENOENT for
+    every PHOTO_GRADING run once `_lut_arg` started quoting paths."""
+    value = filter_expr.split("file=", 1)[1]
+    if len(value) >= 2 and value[0] == value[-1] == "'":
+        value = value[1:-1]
+    return value.replace("\\:", ":")
+
+
 def _stderr_tail(p: subprocess.CompletedProcess, lines: int = 8) -> str:
     """The last lines of a tool's stderr: ffmpeg prints its banner first, so the first 300
     characters are always useless (the old error message hid the real cause)."""
@@ -376,7 +386,7 @@ class Executor:
         out_stats = self.signalstats(dst)
         lut_info: Dict[str, Any] = {}
         if op.type in ("PHOTO_GRADING", "PHOTO_LUT_APPLY"):
-            lut = op.parameters["lut_path"] if op.type == "PHOTO_LUT_APPLY" else chain[0].split("file=", 1)[1]
+            lut = op.parameters["lut_path"] if op.type == "PHOTO_LUT_APPLY" else _lut_file_value(chain[0])
             lut_path = Path(lut)
             lut_info = {"path": str(lut_path), "sha256": _sha256_file(lut_path), "applied": "lut3d"}
         return {"operation_id": op.op_id, "type": op.type, "tool": "ffmpeg",

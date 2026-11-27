@@ -50,9 +50,16 @@ All notable changes to photo-grading-skill are documented in this file. The form
 - Colour math and LUT interpolation moved out of `critic.py` into `analysis/`; the critic
   imports them instead of keeping a second copy.
 
+### Fixed
+
+- `PHOTO_GRADING` runs failed with `FileNotFoundError` after `_lut_arg` started quoting LUT
+  paths: the provenance step hashed the filter argument (`'grading_wheels_….cube'`, quotes
+  included) instead of the filesystem path. `_lut_file_value` now inverts `_lut_arg`, with a
+  round-trip test for relative and absolute Windows paths.
+
 ### Tests
 
-- 103 unit tests, including 14 critic/optimizer tests, 9 analysis tests and 17 reverse-
+- 104 unit tests, including 14 critic/optimizer tests, 9 analysis tests and 17 reverse-
   engineering tests. The analysis tests include a real-FFmpeg `lut3d` parity check: mean
   ΔE_OK < 0.01, p95 < 0.02. The reverse-engineering tests add a model/builder parity check
   (5e-7), pure-grade round-trips on a held-out scene (mean < 0.01, p95 < 0.03), identity and

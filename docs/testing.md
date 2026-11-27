@@ -1,6 +1,6 @@
 # Testing
 
-`python -m pytest -q` from the repo root. 103 tests, nothing skipped, no mocks of the
+`python -m pytest -q` from the repo root. 104 tests, nothing skipped, no mocks of the
 execution layer beyond path-policy fixtures (unit level). The analysis/critic tests skip if the
 optional `[analysis]` extra (numpy + Pillow; `[critic]` is an alias) is not installed.
 
@@ -28,8 +28,9 @@ optional `[analysis]` extra (numpy + Pillow; `[critic]` is an alias) is not inst
   seeded palette determinism; skin band; **real FFmpeg parity** (a graded 33³ LUT rendered by
   `ffmpeg lut3d` vs `apply_lut_numpy`: mean ΔE_OK < 0.01, p95 < 0.02); `analyze_file` includes
   descriptors and honours `seed`.
-- **tests/test_executor.py** (6) — correction filter chains, tone LUT inclusion, HSL chain,
-  LUT-argument quoting for absolute Windows paths, and DAG input wiring.
+- **tests/test_executor.py** (7) — correction filter chains, tone LUT inclusion, HSL chain,
+  LUT-argument quoting for absolute Windows paths (and the inverse used by provenance),
+  and DAG input wiring.
 - **tests/test_transcript_tips.py** (6) — `PHOTO_GRADING.strength`, `PHOTO_LUT_APPLY.strength`
   and `PHOTO_CORRECTION.grain`.
 - **tests/test_rea_roundtrip.py** (11) — Phase 2 acceptance: the vectorized wheel model vs

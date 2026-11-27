@@ -33,6 +33,13 @@ def test_lut_arg_quotes_windows_absolute_path():
     assert arg.count("'") == 2
 
 
+def test_lut_file_value_round_trips_lut_arg():
+    from photo_grading.executor import _lut_arg, _lut_file_value
+    for p in ("grading_wheels_test.cube", r"C:\Users\someone\.photo-grading\grade.cube"):
+        recovered = _lut_file_value("lut3d=file=" + _lut_arg(p))
+        assert os.path.normcase(recovered) == os.path.normcase(p)
+
+
 def test_executor_hsl_chain(tmp_path, monkeypatch):
     monkeypatch.setenv("PHOTO_GRADING_SCRATCH", str(tmp_path))
     op = ColorOperation("h", "PHOTO_HSV", "source", {"green_hue": 30, "blue_luminance": -15})
